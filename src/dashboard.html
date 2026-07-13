@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Hệ thống thẩm định in ấn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Manrope', 'ui-sans-serif', 'system-ui'],
+            },
+            colors: {
+              brand: {
+                50: '#eaf5fa',
+                100: '#d5eaf3',
+                600: '#1f7ea5',
+                700: '#1b6787',
+                900: '#102d3f',
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/app-ui.css" />
+  </head>
+  <body class="min-h-screen bg-slate-100 font-sans">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:font-bold focus:text-brand-700">
+      Bỏ qua điều hướng
+    </a>
+
+    <div class="app-shell">
+      <aside class="app-sidebar fixed inset-y-0 left-0 z-20 w-72 px-5 py-5">
+        <div class="border-b border-white/10 pb-5">
+          <p class="text-xs font-extrabold uppercase tracking-[0.16em] text-cyan-100">Ops Console</p>
+          <h1 class="mt-2 text-xl font-extrabold">Thẩm định - In ấn</h1>
+          <p class="mt-2 text-xs leading-5 text-slate-300">Hệ thống giám sát quy trình hồ sơ nội bộ</p>
+        </div>
+
+        <nav class="mt-5" aria-label="Điều hướng chính">
+          <ul id="menu-list" class="space-y-1"></ul>
+        </nav>
+      </aside>
+
+      <div class="app-layout pl-0 lg:pl-72">
+        <header class="app-header sticky top-0 z-10 px-4 py-3 lg:px-6">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p id="active-tab" class="text-xs font-extrabold uppercase tracking-[0.14em] text-brand-700">Tổng quan</p>
+              <h2 class="text-xl font-extrabold text-slate-950">Bảng điều hành hồ sơ</h2>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button id="open-create-btn" type="button" class="btn-primary hidden min-h-11 rounded-lg px-4 py-2 text-sm font-extrabold">
+                Tạo hồ sơ mới
+              </button>
+              <p id="user-info" class="min-h-9 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 lg:text-sm"></p>
+              <button id="logout-btn" type="button" class="btn-secondary min-h-11 rounded-lg px-4 py-2 text-sm font-bold">Đăng xuất</button>
+            </div>
+          </div>
+        </header>
+
+        <main id="main-content" class="app-main px-4 py-5 lg:px-6">
+          <section id="panel-overview" class="panel space-y-5">
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <article class="metric-card ui-card p-4">
+                <p class="text-sm font-bold text-slate-600">Kinh doanh</p>
+                <p id="count-kd" class="mt-2 text-3xl font-extrabold text-slate-950">0</p>
+              </article>
+              <article class="metric-card ui-card p-4">
+                <p class="text-sm font-bold text-slate-600">Thẩm định</p>
+                <p id="count-td" class="mt-2 text-3xl font-extrabold text-slate-950">0</p>
+              </article>
+              <article class="metric-card ui-card p-4">
+                <p class="text-sm font-bold text-slate-600">Trưởng phòng duyệt</p>
+                <p id="count-tp" class="mt-2 text-3xl font-extrabold text-slate-950">0</p>
+              </article>
+              <article class="metric-card ui-card p-4">
+                <p class="text-sm font-bold text-slate-600">In ấn</p>
+                <p id="count-ia" class="mt-2 text-3xl font-extrabold text-slate-950">0</p>
+              </article>
+            </div>
+
+            <section>
+              <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h3 class="text-base font-extrabold text-slate-950">Hồ sơ theo quy trình</h3>
+                  <p class="text-sm text-slate-600">Theo dõi nhanh các hồ sơ đang cần xử lý theo vai trò của bạn.</p>
+                </div>
+              </div>
+              <div id="overview-card-grid" class="task-grid"></div>
+            </section>
+          </section>
+
+          <section id="panel-tasks" class="panel hidden">
+            <div class="mb-3">
+              <h3 class="text-base font-extrabold text-slate-950">Danh sách hồ sơ</h3>
+              <p class="text-sm text-slate-600">Tất cả hồ sơ bạn có quyền theo dõi hoặc xử lý.</p>
+            </div>
+            <div id="task-list-grid" class="task-grid"></div>
+          </section>
+
+          <section id="panel-logs" class="panel hidden">
+            <div class="mb-3">
+              <h3 class="text-base font-extrabold text-slate-950">Lịch sử hệ thống</h3>
+              <p class="text-sm text-slate-600">Dòng thời gian các thay đổi và bàn giao hồ sơ.</p>
+            </div>
+            <div id="logs-list" class="space-y-3"></div>
+          </section>
+
+          <section id="panel-users" class="panel hidden space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="text-base font-extrabold text-slate-950">Quản lý người dùng</h3>
+                <p class="text-sm text-slate-600">Tạo, khóa hoặc cập nhật tài khoản nội bộ.</p>
+              </div>
+              <button id="open-create-user-btn" type="button" class="btn-primary min-h-11 rounded-lg px-4 py-2 text-sm font-extrabold">Thêm người dùng</button>
+            </div>
+            <div id="users-list" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="create-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/55 p-4">
+      <div class="modal-panel w-full max-w-2xl bg-white p-5">
+        <div class="mb-4 flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <div>
+            <h3 class="text-lg font-extrabold text-slate-950">Tạo hồ sơ mới</h3>
+            <p class="text-sm text-slate-600">Nhập thông tin nền và tải phiếu đề nghị ban đầu.</p>
+          </div>
+          <button id="close-create-btn" class="btn-secondary min-h-10 rounded-lg px-3 py-1 text-sm font-bold">Đóng</button>
+        </div>
+        <form id="create-modal-form" class="grid gap-3 md:grid-cols-2">
+          <label class="block space-y-1 text-sm font-bold text-slate-700">
+            <span>Tên dự án</span>
+            <input id="project-name" type="text" required class="w-full border px-3 py-2" />
+          </label>
+          <label class="block space-y-1 text-sm font-bold text-slate-700">
+            <span>Khách hàng</span>
+            <input id="customer-name" type="text" required class="w-full border px-3 py-2" />
+          </label>
+          <label class="block space-y-1 text-sm font-bold text-slate-700 md:col-span-2">
+            <span>Mô tả</span>
+            <textarea id="project-description" rows="3" class="w-full border px-3 py-2"></textarea>
+          </label>
+          <label class="block space-y-1 text-sm font-bold text-slate-700">
+            <span>Hạn xử lý</span>
+            <input id="due-at" type="date" class="w-full border px-3 py-2" />
+          </label>
+          <label class="block space-y-1 text-sm font-bold text-slate-700">
+            <span>Phiếu đề nghị</span>
+            <input id="proposal-upload" type="file" required class="w-full border px-3 py-2" />
+          </label>
+          <label class="block space-y-1 text-sm font-bold text-slate-700 md:col-span-2">
+            <span>Tài liệu hồ sơ</span>
+            <input id="documents-upload" type="file" multiple class="w-full border px-3 py-2" />
+            <p class="text-xs font-medium text-slate-500">Có thể chọn nhiều file cùng lúc.</p>
+          </label>
+          <div id="documents-list" class="md:col-span-2 text-sm text-slate-600"></div>
+          <div class="md:col-span-2 flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-3">
+            <p id="create-modal-state" class="min-h-5 flex-1 text-sm font-bold text-brand-700" aria-live="polite"></p>
+            <button type="submit" class="btn-primary min-h-11 rounded-lg px-4 py-2 text-sm font-extrabold">Lưu hồ sơ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="action-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/55 p-4">
+      <div class="modal-panel w-full max-w-xl bg-white p-5">
+        <div class="mb-4 flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
+          <h3 id="action-title" class="text-lg font-extrabold text-slate-950">Thao tác</h3>
+          <button id="close-action-btn" class="btn-secondary min-h-10 rounded-lg px-3 py-1 text-sm font-bold">Đóng</button>
+        </div>
+        <div id="action-body"></div>
+        <p id="action-state" class="mt-3 min-h-5 text-sm font-bold text-brand-700" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <script src="./dashboard.js"></script>
+    <script src="./dashboard-redesign.js"></script>
+  </body>
+</html>

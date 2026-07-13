@@ -1,0 +1,13 @@
+﻿.env
+*.log
+node_modules/
+src/app.db
+uploads/
+src/public/uploads/
+tmp-server-*.log
+tmp-server-*.err.log
+.agents/
+.codex/
+tmp-codex-*.log
+tmp-codex-*.err.log
+

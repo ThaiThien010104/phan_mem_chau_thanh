@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chi tiết hồ sơ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Manrope', 'ui-sans-serif', 'system-ui'],
+            },
+            colors: {
+              brand: {
+                50: '#eaf5fa',
+                100: '#d5eaf3',
+                600: '#1f7ea5',
+                700: '#1b6787',
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/app-ui.css" />
+  </head>
+  <body class="min-h-screen bg-slate-100 font-sans">
+    <main class="app-main space-y-5 px-4 py-5 lg:px-6">
+      <header class="app-header flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
+        <div>
+          <p class="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">Chi tiết hồ sơ</p>
+          <h1 class="mt-1 text-2xl font-extrabold text-slate-950">Thông tin và thao tác xử lý</h1>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="back-btn" class="btn-secondary min-h-11 rounded-lg px-4 py-2 text-sm font-bold">Quay lại Dashboard</button>
+          <button id="logout-btn" class="btn-primary min-h-11 rounded-lg px-4 py-2 text-sm font-extrabold">Đăng xuất</button>
+        </div>
+      </header>
+
+      <section id="page-error" class="hidden rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700" role="alert"></section>
+      <section id="page-loading" class="rounded-lg border border-brand-100 bg-brand-50 p-4 text-sm font-bold text-brand-700">Đang tải dữ liệu hồ sơ...</section>
+
+      <section class="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <article class="ui-card p-4">
+          <div class="mb-3 border-b border-slate-200 pb-3">
+            <h2 class="text-base font-extrabold text-slate-950">Thông tin hồ sơ</h2>
+            <p class="text-sm text-slate-600">Các thông tin nền, trạng thái và người phụ trách hiện tại.</p>
+          </div>
+          <div class="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+            <p><span class="font-bold text-slate-950">Mã hồ sơ:</span> <span id="task-code">-</span></p>
+            <p><span class="font-bold text-slate-950">Tên dự án:</span> <span id="task-name">-</span></p>
+            <p><span class="font-bold text-slate-950">Trạng thái:</span> <span id="task-status">-</span></p>
+            <p><span class="font-bold text-slate-950">Người tạo:</span> <span id="task-owner">-</span></p>
+            <p><span class="font-bold text-slate-950">Ngày tạo:</span> <span id="task-created">-</span></p>
+            <p><span class="font-bold text-slate-950">Người được giao:</span> <span id="task-assignee">-</span></p>
+            <p><span class="font-bold text-slate-950">Hạn xử lý:</span> <span id="task-due">-</span></p>
+            <p><span class="font-bold text-slate-950">SLA:</span> <span id="task-sla">-</span></p>
+          </div>
+        </article>
+
+        <article class="ui-card p-4">
+          <div class="mb-3 border-b border-slate-200 pb-3">
+            <h2 class="text-base font-extrabold text-slate-950">Thao tác khả dụng</h2>
+            <p class="text-sm text-slate-600">Hiển thị theo vai trò và trạng thái hồ sơ.</p>
+          </div>
+          <div id="action-panel" class="space-y-3"></div>
+          <p id="action-state" class="mt-3 min-h-5 text-sm font-bold text-brand-700" aria-live="polite"></p>
+        </article>
+      </section>
+
+      <section class="ui-card p-4">
+        <div class="mb-3 border-b border-slate-200 pb-3">
+          <h2 class="text-base font-extrabold text-slate-950">Danh sách file</h2>
+          <p class="text-sm text-slate-600">Phiếu đề nghị, tài liệu hồ sơ và file kết quả theo từng công đoạn.</p>
+        </div>
+        <div id="files-list" class="space-y-2"></div>
+      </section>
+
+      <section class="ui-card p-4">
+        <div class="mb-3 border-b border-slate-200 pb-3">
+          <h2 class="text-base font-extrabold text-slate-950">Lịch sử hồ sơ</h2>
+          <p class="text-sm text-slate-600">Dòng thời gian xử lý, bàn giao và phê duyệt.</p>
+        </div>
+        <div id="timeline-list" class="space-y-3"></div>
+      </section>
+    </main>
+
+    <script src="/task-detail.js"></script>
+    <script src="/task-detail-redesign.js"></script>
+  </body>
+</html>

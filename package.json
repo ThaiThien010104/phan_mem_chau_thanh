@@ -1,0 +1,24 @@
+﻿{
+  "name": "he-thong-giam-sat-tham-dinh-in-an",
+  "version": "0.1.0",
+  "private": true,
+  "description": "He thong giam sat quy trinh tham dinh - in an",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js",
+    "build": "node --check src/app.js && node --check src/dashboard.js && node --check src/dashboard-redesign.js && node --check src/task-detail.js && node --check src/task-detail-redesign.js && node --check src/login.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.5.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^9.0.3",
+    "pg": "^8.13.1"
+  }
+}
+

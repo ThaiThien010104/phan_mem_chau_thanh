@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng nhập - Hệ thống thẩm định in ấn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Manrope', 'ui-sans-serif', 'system-ui'],
+            },
+            colors: {
+              brand: {
+                50: '#ecf7fb',
+                100: '#d2ecf5',
+                600: '#1f7ea5',
+                700: '#176484',
+                900: '#103246',
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/app-ui.css" />
+  </head>
+  <body class="font-sans">
+    <main class="login-page grid min-h-screen place-items-center px-4 py-8">
+      <section class="grid w-full max-w-5xl overflow-hidden login-card lg:grid-cols-[1.05fr_0.95fr]">
+        <div class="hidden bg-[#0d2637] p-8 text-white lg:flex lg:flex-col lg:justify-between">
+          <div>
+            <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-cyan-100">Enterprise Workflow</p>
+            <h1 class="mt-4 text-3xl font-extrabold leading-tight">Quản lý quy trình thẩm định và in ấn nội bộ</h1>
+            <p class="mt-4 max-w-md text-sm leading-6 text-slate-200">
+              Theo dõi hồ sơ, phân công thẩm định, kiểm soát phê duyệt và bàn giao in ấn trên một luồng thống nhất.
+            </p>
+          </div>
+          <div class="grid gap-3 text-sm text-slate-200">
+            <div class="rounded-lg border border-white/15 bg-white/10 p-3">Theo dõi trạng thái hồ sơ theo từng bộ phận</div>
+            <div class="rounded-lg border border-white/15 bg-white/10 p-3">Lưu lịch sử xử lý và file đính kèm tập trung</div>
+            <div class="rounded-lg border border-white/15 bg-white/10 p-3">Cảnh báo hạn xử lý và hồ sơ cần làm lại</div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 sm:p-8">
+          <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Đăng nhập hệ thống</p>
+          <h2 class="mt-2 text-2xl font-extrabold text-slate-950">Chào mừng quay lại</h2>
+          <p class="mt-2 text-sm leading-6 text-slate-600">Sử dụng tài khoản nội bộ được cấp để tiếp tục xử lý hồ sơ.</p>
+
+          <form id="login-form" class="mt-6 space-y-4">
+            <label class="block space-y-2 text-sm font-semibold text-slate-700">
+              <span>Tên đăng nhập</span>
+              <input id="username" type="text" autocomplete="username" required class="w-full border px-4 py-3 text-slate-900" />
+            </label>
+
+            <label class="block space-y-2 text-sm font-semibold text-slate-700">
+              <span>Mật khẩu</span>
+              <input id="password" type="password" autocomplete="current-password" required class="w-full border px-4 py-3 text-slate-900" />
+            </label>
+
+            <button type="submit" class="btn-primary min-h-11 w-full rounded-lg px-4 py-3 text-sm font-extrabold">
+              Đăng nhập
+            </button>
+          </form>
+
+          <p id="auth-state" class="mt-4 min-h-6 text-sm font-semibold text-brand-700" aria-live="polite"></p>
+          <p class="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+            Tài khoản demo: <span class="font-semibold">admin/admin123</span>,
+            <span class="font-semibold">kinhdoanh/kinhdoanh123</span>,
+            <span class="font-semibold">thamdinh/thamdinh123</span>,
+            <span class="font-semibold">truongphong/truongphong123</span>.
+          </p>
+        </div>
+      </section>
+    </main>
+    <script src="./login.js"></script>
+  </body>
+</html>
