@@ -56,6 +56,14 @@ const pool = new Pool({
   idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS || 30000),
 });
 
+let bootstrapPromise;
+function ensureBootstrapStarted() {
+  if (!bootstrapPromise) {
+    bootstrapPromise = bootstrap();
+  }
+  return bootstrapPromise;
+}
+
 app.use((_, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -64,6 +72,15 @@ app.use((_, res, next) => {
 });
 app.use(cors());
 app.use(express.json());
+app.use(async (_, res, next) => {
+  try {
+    await ensureBootstrapStarted();
+    return next();
+  } catch (error) {
+    console.error('Bootstrap error:', error);
+    return res.status(500).json({ message: 'Khong khoi dong duoc he thong' });
+  }
+});
 app.use('/files', express.static(uploadDir));
 app.use('/uploads', express.static(uploadDir));
 app.use('/legacy-files', express.static(legacyUploadDir));
@@ -2297,14 +2314,19 @@ app.use((error, _, res, next) => {
   return next(error);
 });
 
-bootstrap()
-  .then(() => {
-    app.listen(port, () => {
-      console.log(`Server running on http://localhost:${port}`);
+if (require.main === module) {
+  ensureBootstrapStarted()
+    .then(() => {
+      app.listen(port, () => {
+        console.log(`Server running on http://localhost:${port}`);
+      });
+    })
+    .catch((err) => {
+      console.error('Bootstrap error:', err);
+      process.exit(1);
     });
-  })
-  .catch((err) => {
-    console.error('Bootstrap error:', err);
-    process.exit(1);
-  });
+}
+
+module.exports = app;
+
 
