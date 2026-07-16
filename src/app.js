@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
@@ -12,9 +12,12 @@ const { sendTaskStageEmail } = require('../jobs/emailNotifier');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const uploadDir = path.resolve(process.env.UPLOAD_DIR || './src/public/uploads');
-const legacyUploadDir = path.resolve('./uploads');
+const isVercel = process.env.VERCEL === '1';
 const fileStorageProvider = process.env.FILE_STORAGE || 'local';
+const uploadDir = path.resolve(
+  process.env.UPLOAD_DIR || (isVercel ? '/tmp/valuFlow-uploads' : './src/public/uploads')
+);
+const legacyUploadDir = path.resolve('./uploads');
 const maxUploadBytes = Number(process.env.MAX_UPLOAD_MB || 25) * 1024 * 1024;
 const allowedUploadMimeTypes = new Set([
   'application/pdf',
@@ -28,7 +31,9 @@ const allowedUploadMimeTypes = new Set([
 ]);
 
 fs.mkdirSync(uploadDir, { recursive: true });
-fs.mkdirSync(path.resolve(__dirname, 'public'), { recursive: true });
+if (!isVercel) {
+  fs.mkdirSync(path.resolve(__dirname, 'public'), { recursive: true });
+}
 
 function normalizeDatabaseUrl(rawUrl) {
   if (!rawUrl) {
@@ -2328,5 +2333,3 @@ if (require.main === module) {
 }
 
 module.exports = app;
-
-
