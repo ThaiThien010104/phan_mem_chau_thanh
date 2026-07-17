@@ -339,12 +339,19 @@ function renderTaskCard(task) {
 
 function renderUserCard(user) {
   const roleClass = user.is_active ? 'text-emerald-700' : 'text-slate-400';
+  const statusClass = user.is_active ? 'user-status--active' : 'user-status--inactive';
+  const statusLabel = user.is_active ? 'Đang hoạt động' : 'Không hoạt động';
   return `
     <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p class="text-sm font-bold text-slate-900">${escapeHtml(user.full_name || user.username)}</p>
-      <p class="mt-1 text-xs text-slate-500">@${escapeHtml(user.username)}</p>
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="text-sm font-bold text-slate-900">${escapeHtml(user.full_name || user.username)}</p>
+          <p class="mt-1 text-xs text-slate-500">@${escapeHtml(user.username)}</p>
+        </div>
+        <span class="user-status ${statusClass}">${statusLabel}</span>
+      </div>
       <p class="mt-1 text-xs text-slate-500">${escapeHtml(user.email)}</p>
-      <p class="mt-2 text-xs font-bold ${roleClass}">${escapeHtml(user.role)}${user.is_active ? '' : ' - Vô hiệu hóa'}</p>
+      <p class="mt-2 text-xs font-bold ${roleClass}">${escapeHtml(user.role)}</p>
       <div class="mt-3 flex items-center gap-2">
         <button data-action="edit-user" data-user-id="${user.id}" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100">Sửa</button>
         <button data-action="delete-user" data-user-id="${user.id}" class="rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50">Xóa</button>
@@ -996,8 +1003,4 @@ function setupShell() {
     window.location.href = '/';
   }
 })();
-
-
-
-
 

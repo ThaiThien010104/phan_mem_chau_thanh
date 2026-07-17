@@ -28,7 +28,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/app-ui.css" />
+    <link rel="stylesheet" href="/app-ui.css?v=20260717-5" />
   </head>
   <body class="min-h-screen bg-slate-100 font-sans">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:font-bold focus:text-brand-700">
@@ -59,6 +59,18 @@
               <button id="open-create-btn" type="button" class="btn-primary hidden min-h-11 rounded-lg px-4 py-2 text-sm font-extrabold">
                 Tạo hồ sơ mới
               </button>
+              <div class="relative">
+                <button id="notifications-toggle" type="button" class="mailbox-btn" aria-expanded="false" aria-controls="notifications-popover" title="Thông báo">Thư
+                  <span id="notifications-badge" class="mailbox-badge hidden">0</span>
+                </button>
+                <section id="notifications-popover" class="mailbox-popover hidden" aria-label="Thông báo">
+                  <div class="mailbox-popover__header">
+                    <p class="text-sm font-extrabold text-slate-950">Thông báo</p>
+                    <button id="refresh-notifications-btn" type="button" class="btn-secondary min-h-9 rounded-lg px-3 py-1 text-xs font-extrabold">Tải lại</button>
+                  </div>
+                  <div id="notifications-list" class="mailbox-list"></div>
+                </section>
+              </div>
               <p id="user-info" class="min-h-9 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 lg:text-sm"></p>
               <button id="logout-btn" type="button" class="btn-secondary min-h-11 rounded-lg px-4 py-2 text-sm font-bold">Đăng xuất</button>
             </div>
@@ -181,10 +193,7 @@
         <p id="action-state" class="mt-3 min-h-5 text-sm font-bold text-brand-700" aria-live="polite"></p>
       </div>
     </div>
-    <script src="./dashboard.js?v=20260717-3"></script>
-    <script src="./dashboard-redesign.js?v=20260717-3"></script>
+    <script src="./dashboard.js?v=20260717-5"></script>
+    <script src="./dashboard-redesign.js?v=20260717-5"></script>
   </body>
 </html>
-
-
-

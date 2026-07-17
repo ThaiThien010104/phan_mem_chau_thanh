@@ -1,4 +1,4 @@
-﻿(function applyDashboardRedesign() {
+(function applyDashboardRedesign() {
   Object.assign(roleMenus, {
     ADMIN: [
       { key: 'overview', label: 'Tong quan' },
@@ -110,35 +110,19 @@
     const firstMetricGrid = overviewPanel && overviewPanel.querySelector('.grid');
     if (firstMetricGrid && !document.getElementById('count-overdue')) {
       firstMetricGrid.insertAdjacentHTML('beforeend', `
-        <article class="metric-card ui-card p-4"><p class="text-sm font-bold text-slate-600">Qua han</p><p id="count-overdue" class="mt-2 text-3xl font-extrabold text-rose-700">0</p></article>
-        <article class="metric-card ui-card p-4"><p class="text-sm font-bold text-slate-600">Sap den han</p><p id="count-due-soon" class="mt-2 text-3xl font-extrabold text-amber-700">0</p></article>
-        <article class="metric-card ui-card p-4"><p class="text-sm font-bold text-slate-600">Bi tra lai</p><p id="count-rejected" class="mt-2 text-3xl font-extrabold text-slate-950">0</p></article>
-        <article class="metric-card ui-card p-4"><p class="text-sm font-bold text-slate-600">Thong bao moi</p><p id="count-unread" class="mt-2 text-3xl font-extrabold text-brand-700">0</p></article>
+        <article class="metric-card ui-card p-4"><p class="text-sm font-bold text-slate-600">Quá hạn</p><p id="count-overdue" class="mt-2 text-3xl font-extrabold text-rose-700">0</p></article>
+        <article class="metric-card ui-card p-4"><p class="text-sm font-bold text-slate-600">Sắp đến hạn</p><p id="count-due-soon" class="mt-2 text-3xl font-extrabold text-amber-700">0</p></article>
+        <article class="metric-card ui-card p-4"><p class="text-sm font-bold text-slate-600">Bị trả lại</p><p id="count-rejected" class="mt-2 text-3xl font-extrabold text-slate-950">0</p></article>
+        <article class="metric-card ui-card p-4"><p class="text-sm font-bold text-slate-600">Thông báo mới</p><p id="count-unread" class="mt-2 text-3xl font-extrabold text-brand-700">0</p></article>
       `);
     }
-
-    if (overviewPanel && !document.getElementById('notifications-list')) {
-      overviewPanel.insertAdjacentHTML('beforeend', `
-        <section class="ui-card p-4">
-          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h3 class="text-base font-extrabold text-slate-950">Thong bao can xu ly</h3>
-              <p class="text-sm text-slate-600">Cac cap nhat moi ve ho so duoc giao, bi tra lai, sap den han hoac da duyet.</p>
-            </div>
-            <button id="refresh-notifications-btn" type="button" class="btn-secondary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Tai lai</button>
-          </div>
-          <div id="notifications-list" class="grid gap-2"></div>
-        </section>
-      `);
-    }
-
     const main = document.getElementById('main-content');
     if (main && !document.getElementById('panel-archive')) {
       main.insertAdjacentHTML('beforeend', `
         <section id="panel-archive" class="panel hidden">
           <div class="mb-3">
-            <h3 class="text-base font-extrabold text-slate-950">Kho luu tru ho so</h3>
-            <p class="text-sm text-slate-600">Quan ly cac ho so da luu tru va khoi phuc khi can.</p>
+            <h3 class="text-base font-extrabold text-slate-950">Kho lưu trữ hồ sơ</h3>
+            <p class="text-sm text-slate-600">Quản lý các hồ sơ đã lưu trữ và khôi phục khi cần.</p>
           </div>
           <div id="archive-list-grid" class="task-grid"></div>
         </section>
@@ -149,6 +133,27 @@
     if (refreshBtn && !refreshBtn.dataset.bound) {
       refreshBtn.dataset.bound = '1';
       refreshBtn.addEventListener('click', loadNotifications);
+    }
+
+    const notificationToggle = document.getElementById('notifications-toggle');
+    const notificationPopover = document.getElementById('notifications-popover');
+    if (notificationToggle && notificationPopover && !notificationToggle.dataset.bound) {
+      notificationToggle.dataset.bound = '1';
+      notificationToggle.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const nextOpen = notificationPopover.classList.contains('hidden');
+        notificationPopover.classList.toggle('hidden', !nextOpen);
+        notificationToggle.setAttribute('aria-expanded', String(nextOpen));
+        if (nextOpen) {
+          await loadNotifications();
+        }
+      });
+      document.addEventListener('click', (event) => {
+        if (!notificationPopover.contains(event.target) && !notificationToggle.contains(event.target)) {
+          notificationPopover.classList.add('hidden');
+          notificationToggle.setAttribute('aria-expanded', 'false');
+        }
+      });
     }
   }
 
@@ -180,7 +185,7 @@
     return `
       <div class="flex flex-wrap items-center justify-between gap-3">
         <label class="min-w-[240px] flex-1 text-sm font-bold text-slate-700">
-          <span class="sr-only">Tim kiem</span>
+          <span class="sr-only">Tìm kiếm</span>
           <input data-list-search="${kind}" type="search" value="${escapeHtml(state.query)}" placeholder="${placeholder}" class="w-full border px-3 py-2 text-sm" />
         </label>
         <div class="flex flex-wrap items-center gap-2 text-sm">
@@ -190,7 +195,7 @@
             <option value="10" ${state.pageSize === 10 ? 'selected' : ''}>10 / trang</option>
             <option value="20" ${state.pageSize === 20 ? 'selected' : ''}>20 / trang</option>
           </select>
-          <button data-list-prev="${kind}" type="button" class="btn-secondary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold" ${pagination.page <= 1 ? 'disabled' : ''}>Truoc</button>
+          <button data-list-prev="${kind}" type="button" class="btn-secondary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold" ${pagination.page <= 1 ? 'disabled' : ''}>Trước</button>
           <span class="min-w-16 text-center font-extrabold text-slate-700">${pagination.page}/${totalPages}</span>
           <button data-list-next="${kind}" type="button" class="btn-secondary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold" ${pagination.page >= totalPages ? 'disabled' : ''}>Sau</button>
         </div>
@@ -256,23 +261,23 @@
 
     let actionHtml = '';
     if (canAssign) {
-      actionHtml = `<button data-action="assign" data-task-id="${task.id}" class="btn-primary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Chi dinh tham dinh</button>`;
+      actionHtml = `<button data-action="assign" data-task-id="${task.id}" class="btn-primary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Chỉ định thẩm định</button>`;
     }
     if (canReview) {
-      actionHtml = `<button data-action="review" data-task-id="${task.id}" class="btn-primary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Danh gia ho so</button>`;
+      actionHtml = `<button data-action="review" data-task-id="${task.id}" class="btn-primary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Đánh giá hồ sơ</button>`;
     }
     if (canUploadAppraisal) {
-      actionHtml = `<button data-action="upload-appraisal" data-task-id="${task.id}" class="btn-primary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Tai ket qua</button>`;
+      actionHtml = `<button data-action="upload-appraisal" data-task-id="${task.id}" class="btn-primary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Tải kết quả</button>`;
     }
 
     const adminTaskActionHtml = canAdminEdit
       ? `
-        <button data-action="edit-task" data-task-id="${task.id}" class="btn-secondary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Sua</button>
-        <button data-action="delete-task" data-task-id="${task.id}" class="min-h-10 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-extrabold text-amber-700 hover:bg-amber-50">Luu tru</button>
+        <button data-action="edit-task" data-task-id="${task.id}" class="btn-secondary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Sửa</button>
+        <button data-action="delete-task" data-task-id="${task.id}" class="min-h-10 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-extrabold text-amber-700 hover:bg-amber-50">Lưu trữ</button>
       `
       : '';
     const archiveActionHtml = task.is_archive_card
-      ? `<button data-action="restore-task" data-task-id="${task.id}" class="btn-primary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Khoi phuc</button>`
+      ? `<button data-action="restore-task" data-task-id="${task.id}" class="btn-primary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Khôi phục</button>`
       : '';
 
     return `
@@ -280,23 +285,23 @@
         <div class="flex items-start justify-between gap-3">
           <div>
             <p class="task-card__code">${escapeHtml(task.code)}</p>
-            <h4 class="task-card__title">${escapeHtml(task.project_name || task.title || 'Khong co tieu de')}</h4>
+            <h4 class="task-card__title">${escapeHtml(task.project_name || task.title || 'Không có tiêu đề')}</h4>
           </div>
           <span class="status-pill ${statusBadgeClass(task.status)}">${escapeHtml(displayStatus)}</span>
         </div>
         <div class="task-card__meta">
-          <p>Khach hang: <span class="font-bold text-slate-800">${escapeHtml(task.customer_name || '-')}</span></p>
-          <p>Nguoi tao: <span class="font-bold text-slate-800">${escapeHtml(task.created_by || '-')}</span></p>
-          <p>Ngay tao: <span class="font-bold text-slate-800">${escapeHtml(formatDate(task.created_at))}</span></p>
-          ${task.deleted_at ? `<p>Luu tru: <span class="font-bold text-slate-800">${escapeHtml(formatDate(task.deleted_at))}</span></p>` : ''}
+          <p>Khách hàng: <span class="font-bold text-slate-800">${escapeHtml(task.customer_name || '-')}</span></p>
+          <p>Người tạo: <span class="font-bold text-slate-800">${escapeHtml(task.created_by || '-')}</span></p>
+          <p>Ngày tạo: <span class="font-bold text-slate-800">${escapeHtml(formatDate(task.created_at))}</span></p>
+          ${task.deleted_at ? `<p>Đã lưu trữ: <span class="font-bold text-slate-800">${escapeHtml(formatDate(task.deleted_at))}</span></p>` : ''}
         </div>
         <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3">
           <span class="status-pill bg-slate-100 text-slate-700">${escapeHtml(labelStage(task.current_stage))}</span>
           <span class="status-pill ${slaBadgeClass(slaStatus)}">${escapeHtml(slaLabels[slaStatus] || slaStatus)}</span>
-          <span class="text-xs font-bold text-slate-500">Han xu ly: ${escapeHtml(dueLabel)}</span>
+          <span class="text-xs font-bold text-slate-500">Hạn xử lý: ${escapeHtml(dueLabel)}</span>
         </div>
         <div class="task-card__actions">
-          ${task.is_archive_card ? '' : `<a href="/task/${task.id}" class="btn-secondary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Xem chi tiet</a>`}
+          ${task.is_archive_card ? '' : `<a href="/task/${task.id}" class="btn-secondary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Xem chi tiết</a>`}
           ${actionHtml}
           ${adminTaskActionHtml}
           ${archiveActionHtml}
@@ -307,10 +312,10 @@
 
   function renderTaskPage(kind, container, data) {
     const toolbar = ensureListToolbar(container, `${kind}-list-toolbar`);
-    toolbar.innerHTML = renderListToolbar(kind, data.pagination, 'Tim theo ma ho so, du an, khach hang, nguoi tao...');
+    toolbar.innerHTML = renderListToolbar(kind, data.pagination, 'Tìm theo mã hồ sơ, dự án, khách hàng, người tạo...');
     container.innerHTML = data.items.length
       ? data.items.map(renderTaskCard).join('')
-      : '<p class="ui-card p-6 text-sm font-bold text-slate-500">Khong co ho so phu hop.</p>';
+      : '<p class="ui-card p-6 text-sm font-bold text-slate-500">Không có hồ sơ phù hợp.</p>';
     bindListToolbar(kind, () => loadTaskList(kind));
     if (kind === 'archive') {
       bindArchiveActions();
@@ -336,10 +341,10 @@
     const overviewItems = items.slice(0, listState.overview.pageSize);
     const taskItems = items.slice(0, listState.tasks.pageSize);
     if (overviewContainer) {
-      overviewContainer.innerHTML = overviewItems.length ? overviewItems.map(renderTaskCard).join('') : '<p class="ui-card p-6 text-sm font-bold text-slate-500">Chua co ho so.</p>';
+      overviewContainer.innerHTML = overviewItems.length ? overviewItems.map(renderTaskCard).join('') : '<p class="ui-card p-6 text-sm font-bold text-slate-500">Chưa có hồ sơ.</p>';
     }
     if (taskListContainer) {
-      taskListContainer.innerHTML = taskItems.length ? taskItems.map(renderTaskCard).join('') : '<p class="ui-card p-6 text-sm font-bold text-slate-500">Chua co ho so.</p>';
+      taskListContainer.innerHTML = taskItems.length ? taskItems.map(renderTaskCard).join('') : '<p class="ui-card p-6 text-sm font-bold text-slate-500">Chưa có hồ sơ.</p>';
     }
   };
 
@@ -370,10 +375,10 @@
     try {
       const data = await api(`/api/logs?${toQuery(listState.logs)}`);
       const toolbar = ensureListToolbar(wrap, 'logs-list-toolbar');
-      toolbar.innerHTML = renderListToolbar('logs', data.pagination, 'Tim theo ma ho so, thao tac, nguoi thuc hien...');
+      toolbar.innerHTML = renderListToolbar('logs', data.pagination, 'Tìm theo mã hồ sơ, thao tác, người thực hiện...');
       wrap.innerHTML = data.items.length
         ? data.items.map(renderLogCard).join('')
-        : '<p class="ui-card p-6 text-sm font-bold text-slate-500">Khong co lich su phu hop.</p>';
+        : '<p class="ui-card p-6 text-sm font-bold text-slate-500">không có lịch sử phù hợp.</p>';
       bindListToolbar('logs', loadLogs);
     } catch (error) {
       wrap.innerHTML = `<p class="ui-card border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">${escapeHtml(error.message)}</p>`;
@@ -387,20 +392,26 @@
     }
     try {
       const items = await api('/api/notifications');
+      const unreadCount = items.filter((item) => !item.is_read).length;
+      const badge = document.getElementById('notifications-badge');
+      if (badge) {
+        badge.textContent = String(unreadCount);
+        badge.classList.toggle('hidden', unreadCount === 0);
+      }
       wrap.innerHTML = items.length
         ? items.map((item) => `
-          <article class="notification-item ui-card p-3 ${item.is_read ? 'is-read' : ''}">
+          <article class="notification-item p-3 ${item.is_read ? 'is-read' : ''}">
             <div class="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p class="text-sm font-extrabold text-slate-950">${escapeHtml(item.title)}</p>
                 <p class="mt-1 text-sm text-slate-600">${escapeHtml(item.message)}</p>
                 <p class="mt-1 text-xs font-bold text-slate-500">${escapeHtml(item.task_code || '')} ${escapeHtml(formatDate(item.created_at))}</p>
               </div>
-              ${item.is_read ? '<span class="status-pill bg-slate-100 text-slate-700">Da doc</span>' : `<button data-action="read-notification" data-notification-id="${item.id}" class="btn-secondary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Da doc</button>`}
+              ${item.is_read ? '<span class="status-pill bg-slate-100 text-slate-700">Đã đọc</span>' : `<button data-action="read-notification" data-notification-id="${item.id}" class="btn-secondary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Đã đọc</button>`}
             </div>
           </article>
         `).join('')
-        : '<p class="text-sm font-bold text-slate-500">Chua co thong bao moi.</p>';
+        : '<p class="text-sm font-bold text-slate-500">Chưa có thông báo mới.</p>';
       bindNotificationActions();
     } catch (error) {
       wrap.innerHTML = `<p class="text-sm font-bold text-rose-700">${escapeHtml(error.message)}</p>`;
