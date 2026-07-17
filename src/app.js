@@ -1248,8 +1248,12 @@ app.delete('/api/admin/users/:userId', auth, requireRole('ADMIN'), async (req, r
   }
 });
 
-app.post('/api/admin/tasks', auth, requireRole('ADMIN'), async (req, res) => {
+app.post('/api/admin/tasks', auth, requireRole('ADMIN'), uploadMultiple, async (req, res) => {
   try {
+    if (req.uploadValidationError) {
+      return res.status(400).json({ message: req.uploadValidationError });
+    }
+
     const { projectName, customerName, description, dueAt, currentStage, status, assigneeId } = req.body;
 
     if (!projectName || !projectName.trim()) {
@@ -1304,13 +1308,60 @@ app.post('/api/admin/tasks', auth, requireRole('ADMIN'), async (req, res) => {
       ]
     );
 
+    const proposalFile = req.files && req.files.proposalFile && req.files.proposalFile[0];
+    if (proposalFile) {
+      const proposalStoredFile = await saveUploadedFile(proposalFile);
+      await run(
+        `INSERT INTO attachments (task_id, uploaded_by, stage, file_name, storage_path, mime_type, file_size)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          created.lastID,
+          req.user.id,
+          stage,
+          proposalStoredFile.fileName,
+          proposalStoredFile.storagePath,
+          proposalStoredFile.mimeType,
+          proposalStoredFile.fileSize,
+        ]
+      );
+      await run(
+        `INSERT INTO task_logs (task_id, from_stage, to_stage, action, note, changed_by)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [created.lastID, stage, stage, 'UPLOAD', `${req.user.username} da upload Phieu de nghi cho ho so ${code}`, req.user.id]
+      );
+    }
+
+    const documentFiles = (req.files && req.files.documentFiles) || [];
+    if (documentFiles.length > 0) {
+      for (const docFile of documentFiles) {
+        const storedDocFile = await saveUploadedFile(docFile);
+        await run(
+          `INSERT INTO attachments (task_id, uploaded_by, stage, file_name, storage_path, mime_type, file_size)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            created.lastID,
+            req.user.id,
+            stage,
+            storedDocFile.fileName,
+            storedDocFile.storagePath,
+            storedDocFile.mimeType,
+            storedDocFile.fileSize,
+          ]
+        );
+      }
+      await run(
+        `INSERT INTO task_logs (task_id, from_stage, to_stage, action, note, changed_by)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [created.lastID, stage, stage, 'UPLOAD', `${req.user.username} da upload ${documentFiles.length} tai lieu cho ho so ${code}`, req.user.id]
+      );
+    }
+
     const task = await get('SELECT * FROM tasks WHERE id = ?', [created.lastID]);
     return res.status(201).json({ message: 'Tao ho so thanh cong', task });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
 });
-
 app.put('/api/admin/tasks/:taskId', auth, requireRole('ADMIN'), async (req, res) => {
   try {
     const taskId = Number(req.params.taskId);

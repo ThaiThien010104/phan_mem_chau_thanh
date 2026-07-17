@@ -913,33 +913,26 @@ function setupCreateModal() {
       const description = document.getElementById('project-description').value.trim();
       const dueAt = document.getElementById('due-at').value;
 
-      if (authUser.role === 'ADMIN') {
-        await api('/api/admin/tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectName, customerName, description, dueAt }),
-        });
-      } else {
-        const formData = new FormData();
-        formData.append('projectName', projectName);
-        formData.append('customerName', customerName);
-        formData.append('description', description);
-        formData.append('dueAt', dueAt);
-        const file = document.getElementById('proposal-upload').files[0];
-        if (file) {
-          formData.append('proposalFile', file);
-        }
+      const formData = new FormData();
+      formData.append('projectName', projectName);
+      formData.append('customerName', customerName);
+      formData.append('description', description);
+      formData.append('dueAt', dueAt);
 
-        // Add all selected documents
-        const documentFiles = document.getElementById('documents-upload').files;
-        for (let i = 0; i < documentFiles.length; i++) {
-          formData.append('documentFiles', documentFiles[i]);
-        }
-
-        await api('/api/tasks', { method: 'POST', body: formData });
+      const file = document.getElementById('proposal-upload').files[0];
+      if (file) {
+        formData.append('proposalFile', file);
       }
 
-      stateEl.textContent = 'Tạo hồ sơ thành công';
+      const documentFiles = document.getElementById('documents-upload').files;
+      for (let i = 0; i < documentFiles.length; i++) {
+        formData.append('documentFiles', documentFiles[i]);
+      }
+
+      const createUrl = authUser.role === 'ADMIN' ? '/api/admin/tasks' : '/api/tasks';
+      await api(createUrl, { method: 'POST', body: formData });
+
+      stateEl.textContent = 'Tao ho so thanh cong';
       event.target.reset();
       documentsList.innerHTML = '';
       await loadDashboard();
