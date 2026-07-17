@@ -220,50 +220,17 @@ async function api(url, options = {}) {
   return data;
 }
 
-let blobClientModulePromise;
-
-function safeBlobFileName(name) {
-  return String(name || 'file').split(/[\/]/).pop().replace(/[^\w.\-]+/g, '-');
-}
-
-async function getBlobClientModule() {
-  if (!blobClientModulePromise) {
-    blobClientModulePromise = import('@vercel/blob/client');
-  }
-  return blobClientModulePromise;
-}
-
-async function uploadFileToBlob(file, stateEl, label = 'file') {
-  if (!file) {
-    return null;
-  }
-
-  const { upload } = await getBlobClientModule();
-  const safeName = safeBlobFileName(file.name);
-  const pathname = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
-  const blob = await upload(pathname, file, {
-    access: 'private',
-    handleUploadUrl: '/api/blob/client-upload',
+async function apiForm(url, formData) {
+  const response = await fetch(url, {
+    method: 'POST',
     headers: { Authorization: `Bearer ${authToken}` },
-    contentType: file.type || 'application/octet-stream',
-    multipart: file.size > 8 * 1024 * 1024,
-    onUploadProgress: ({ percentage }) => {
-      if (stateEl) {
-        stateEl.textContent = `Dang tai ${label}: ${file.name} (${Math.round(percentage)}%)`;
-      }
-    },
+    body: formData,
   });
-
-  return { fileName: file.name, storagePath: blob.url, mimeType: file.type || 'application/octet-stream', fileSize: file.size };
-}
-
-async function uploadFilesToBlob(files, stateEl, label = 'file') {
-  const list = Array.from(files || []);
-  const uploaded = [];
-  for (let i = 0; i < list.length; i += 1) {
-    uploaded.push(await uploadFileToBlob(list[i], stateEl, `${label} ${i + 1}/${list.length}`));
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message || 'Yeu cau that bai');
   }
-  return uploaded.filter(Boolean);
+  return data;
 }
 function formatDate(sqlDateTime) {
   if (!sqlDateTime) {
@@ -648,13 +615,14 @@ async function submitReview(event) {
     const result = document.getElementById('review-result').value;
     const note = document.getElementById('review-note').value.trim();
     const file = document.getElementById('review-file').files[0];
-    const uploadedFile = file ? await uploadFileToBlob(file, stateEl, 'file danh gia') : null;
+    const formData = new FormData();
+    formData.append('result', result);
+    formData.append('note', note);
+    if (file) {
+      formData.append('reviewFile', file);
+    }
 
-    await api(`/api/tasks/${selectedTaskId}/review`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ result, note, uploadedFile }),
-    });
+    await apiForm(`/api/tasks/${selectedTaskId}/review`, formData);
     stateEl.textContent = 'Danh gia thanh cong';
     await loadDashboard();
   } catch (error) {
@@ -694,13 +662,13 @@ async function submitUploadAppraisal(event) {
   try {
     const note = document.getElementById('appraisal-note').value.trim();
     const file = document.getElementById('appraisal-file').files[0];
-    const uploadedFile = file ? await uploadFileToBlob(file, stateEl, 'file ket qua tham dinh') : null;
+    const formData = new FormData();
+    formData.append('note', note);
+    if (file) {
+      formData.append('appraisalFile', file);
+    }
 
-    await api(`/api/tasks/${selectedTaskId}/upload-appraisal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note, uploadedFile }),
-    });
+    await apiForm(`/api/tasks/${selectedTaskId}/upload-appraisal`, formData);
     stateEl.textContent = 'Tai file thanh cong';
     await loadDashboard();
   } catch (error) {
@@ -956,15 +924,21 @@ function setupCreateModal() {
 
       const proposalFile = document.getElementById('proposal-upload').files[0];
       const documentFiles = document.getElementById('documents-upload').files;
-      const proposalFileBlob = proposalFile ? await uploadFileToBlob(proposalFile, stateEl, 'phieu de nghi') : null;
-      const documentFileBlobs = await uploadFilesToBlob(documentFiles, stateEl, 'tai lieu ho so');
 
       const createUrl = authUser.role === 'ADMIN' ? '/api/admin/tasks' : '/api/tasks';
-      await api(createUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectName, customerName, description, dueAt, proposalFileBlob, documentFileBlobs }),
+      const formData = new FormData();
+      formData.append('projectName', projectName);
+      formData.append('customerName', customerName);
+      formData.append('description', description);
+      formData.append('dueAt', dueAt);
+      if (proposalFile) {
+        formData.append('proposalFile', proposalFile);
+      }
+      Array.from(documentFiles).forEach((file) => {
+        formData.append('documentFiles', file);
       });
+
+      await apiForm(createUrl, formData);
       stateEl.textContent = 'Tao ho so thanh cong';
       event.target.reset();
       documentsList.innerHTML = '';
@@ -1022,3 +996,8 @@ function setupShell() {
     window.location.href = '/';
   }
 })();
+
+
+
+
+

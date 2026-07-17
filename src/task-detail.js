@@ -230,39 +230,17 @@ function bindFileDownloadButtons(wrap) {
   });
 }
 
-let blobClientModulePromise;
-
-function safeBlobFileName(name) {
-  return String(name || 'file').split(/[\/]/).pop().replace(/[^\w.\-]+/g, '-');
-}
-
-async function getBlobClientModule() {
-  if (!blobClientModulePromise) {
-    blobClientModulePromise = import('@vercel/blob/client');
-  }
-  return blobClientModulePromise;
-}
-
-async function uploadFileToBlob(file, label = 'file') {
-  if (!file) {
-    return null;
-  }
-
-  const { upload } = await getBlobClientModule();
-  const safeName = safeBlobFileName(file.name);
-  const pathname = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
-  const blob = await upload(pathname, file, {
-    access: 'private',
-    handleUploadUrl: '/api/blob/client-upload',
+async function apiForm(url, formData) {
+  const response = await fetch(url, {
+    method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
-    contentType: file.type || 'application/octet-stream',
-    multipart: file.size > 8 * 1024 * 1024,
-    onUploadProgress: ({ percentage }) => {
-      setActionState(`Dang tai ${label}: ${file.name} (${Math.round(percentage)}%)`);
-    },
+    body: formData,
   });
-
-  return { fileName: file.name, storagePath: blob.url, mimeType: file.type || 'application/octet-stream', fileSize: file.size };
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message || 'Yeu cau that bai');
+  }
+  return data;
 }
 function formatBytes(size) {
   const bytes = Number(size || 0);
@@ -300,13 +278,13 @@ async function submitAppraisalUpload(event) {
   try {
     const note = document.getElementById('appraisal-note').value.trim();
     const file = document.getElementById('appraisal-file').files[0];
-    const uploadedFile = file ? await uploadFileToBlob(file, 'file ket qua tham dinh') : null;
+    const formData = new FormData();
+    formData.append('note', note);
+    if (file) {
+      formData.append('appraisalFile', file);
+    }
 
-    await api(`/api/tasks/${taskId}/upload-appraisal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note, uploadedFile }),
-    });
+    await apiForm(`/api/tasks/${taskId}/upload-appraisal`, formData);
     setActionState('Tai file thanh cong');
     await loadData();
   } catch (error) {
@@ -338,13 +316,14 @@ async function submitReview(event) {
     const result = document.getElementById('review-result').value;
     const note = document.getElementById('review-note').value.trim();
     const file = document.getElementById('review-file').files[0];
-    const uploadedFile = file ? await uploadFileToBlob(file, 'file danh gia') : null;
+    const formData = new FormData();
+    formData.append('result', result);
+    formData.append('note', note);
+    if (file) {
+      formData.append('reviewFile', file);
+    }
 
-    await api(`/api/tasks/${taskId}/review`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ result, note, uploadedFile }),
-    });
+    await apiForm(`/api/tasks/${taskId}/review`, formData);
     setActionState('Da trinh duyet ket qua');
     await loadData();
   } catch (error) {
@@ -534,3 +513,8 @@ document.getElementById('logout-btn').addEventListener('click', () => {
     setActionState(error.message);
   }
 })();
+
+
+
+
+
