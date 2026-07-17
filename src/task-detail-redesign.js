@@ -77,7 +77,9 @@
       return;
     }
 
-    wrap.innerHTML = files.map((f) => `
+    wrap.innerHTML = files.map((f) => {
+      const downloadUrl = f.public_url || f.download_url || f.full_url || '';
+      return `
       <article class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3">
         <div>
           <p class="text-sm font-extrabold text-slate-950">${escapeHtml(f.file_name)}${f.exists ? '' : ' (khong tim thay file vat ly)'}</p>
@@ -85,9 +87,11 @@
             ${escapeHtml(formatBytes(f.file_size))} - ${escapeHtml(labelStage(f.stage))} - ${escapeHtml(fmtDate(f.uploaded_at))}
           </p>
         </div>
-        <a href="${escapeHtml(f.public_url || f.download_url || f.full_url)}" target="_blank" download class="btn-primary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold">Tai xuong</a>
+        <button type="button" data-download-url="${escapeHtml(downloadUrl)}" data-file-name="${escapeHtml(f.file_name)}" class="btn-primary min-h-10 rounded-lg px-3 py-2 text-xs font-extrabold disabled:cursor-not-allowed disabled:bg-slate-400">Tai xuong</button>
       </article>
-    `).join('');
+    `;
+    }).join('');
+    bindFileDownloadButtons(wrap);
   };
 
   renderTimeline = function renderTimeline(logs) {

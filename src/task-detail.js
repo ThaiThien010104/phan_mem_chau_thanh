@@ -182,6 +182,54 @@ async function api(url, options = {}) {
   return data;
 }
 
+async function downloadAttachment(url, fileName) {
+  if (!url) {
+    throw new Error('Khong tim thay duong dan file');
+  }
+
+  if (!url.startsWith('/api/')) {
+    window.open(url, '_blank', 'noopener');
+    return;
+  }
+
+  const response = await fetch(`${API_BASE}${url}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || 'Khong tai duoc file');
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = fileName || 'file';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
+function bindFileDownloadButtons(wrap) {
+  wrap.querySelectorAll('[data-download-url]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Dang tai...';
+      try {
+        await downloadAttachment(button.dataset.downloadUrl, button.dataset.fileName);
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    });
+  });
+}
+
 function formatBytes(size) {
   const bytes = Number(size || 0);
   if (!bytes) {
@@ -244,25 +292,26 @@ function renderTaskInfo(task) {
 function renderFiles(files) {
   const wrap = document.getElementById('files-list');
   if (!files.length) {
-    wrap.innerHTML = '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-500">Chưa có file</p>';
+    wrap.innerHTML = '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-500">Chua co file</p>';
     return;
   }
 
   wrap.innerHTML = files
-    .map(
-      (f) => `
+    .map((f) => {
+      const downloadUrl = f.public_url || f.download_url || f.full_url || '';
+      return `
         <article class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3">
           <div>
-            <p class="text-sm font-semibold text-slate-800">${escapeHtml(f.file_name)}${f.exists ? '' : ' (Không tìm thấy file vật lý)'}</p>
-            <p class="text-xs text-slate-500">Dung lượng: ${escapeHtml(formatBytes(f.file_size))} | Công đoạn: ${escapeHtml(labelStage(f.stage))} | ${escapeHtml(fmtDate(f.uploaded_at))}</p>
+            <p class="text-sm font-semibold text-slate-800">${escapeHtml(f.file_name)}${f.exists ? '' : ' (Khong tim thay file vat ly)'}</p>
+            <p class="text-xs text-slate-500">Dung luong: ${escapeHtml(formatBytes(f.file_size))} | Cong doan: ${escapeHtml(labelStage(f.stage))} | ${escapeHtml(fmtDate(f.uploaded_at))}</p>
           </div>
-          <a href="${escapeHtml(f.public_url || f.download_url || f.full_url)}" target="_blank" download class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-700">Tải xuống</a>
+          <button type="button" data-download-url="${escapeHtml(downloadUrl)}" data-file-name="${escapeHtml(f.file_name)}" class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400">Tai xuong</button>
         </article>
-      `
-    )
+      `;
+    })
     .join('');
+  bindFileDownloadButtons(wrap);
 }
-
 function renderTimeline(logs) {
   const wrap = document.getElementById('timeline-list');
   if (!logs.length) {

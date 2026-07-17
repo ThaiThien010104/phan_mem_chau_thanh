@@ -7,6 +7,7 @@ const path = require('path');
 const multer = require('multer');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { Readable } = require('stream');
 const { Pool } = require('pg');
 const { sendTaskStageEmail } = require('../jobs/emailNotifier');
 
@@ -277,19 +278,18 @@ async function saveUploadedFile(file) {
     };
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error('Chua cau hinh BLOB_READ_WRITE_TOKEN cho Vercel Blob');
-  }
-
   try {
     const { put } = await import('@vercel/blob');
     const safeOriginalName = path.basename(file.originalname).replace(/[^\w.\-]+/g, '-');
     const blobName = `uploads/${Date.now()}-${safeOriginalName}`;
-    const blob = await put(blobName, file.buffer, {
-      access: 'public',
+    const putOptions = {
+      access: 'private',
       contentType: file.mimetype,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    });
+    };
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      putOptions.token = process.env.BLOB_READ_WRITE_TOKEN;
+    }
+    const blob = await put(blobName, file.buffer, putOptions);
 
     return {
       fileName: file.originalname,
@@ -621,12 +621,14 @@ async function isUserAssignedToTask(taskId, userId) {
 
 function buildAttachmentResponse(req, item) {
   if (/^https?:\/\//i.test(item.storage_path || '')) {
+    const isPrivateBlob = item.storage_path.includes('.private.blob.vercel-storage.com');
+    const downloadUrl = isPrivateBlob ? `/api/attachments/${item.id}/download` : item.storage_path;
     return {
       ...item,
       exists: true,
-      public_url: item.storage_path,
-      download_url: item.storage_path,
-      full_url: item.storage_path,
+      public_url: downloadUrl,
+      download_url: downloadUrl,
+      full_url: downloadUrl,
     };
   }
 
@@ -2013,6 +2015,60 @@ app.post('/api/tasks/:taskId/attachments', auth, upload.single('file'), async (r
   }
 });
 
+app.get('/api/attachments/:attachmentId/download', auth, async (req, res) => {
+  try {
+    const attachmentId = Number(req.params.attachmentId);
+    if (!Number.isInteger(attachmentId) || attachmentId <= 0) {
+      return res.status(400).json({ message: 'File khong hop le' });
+    }
+
+    const attachment = await get(
+      `SELECT a.*, t.id AS task_id, t.created_by, t.assignee_id, t.current_stage,
+              COALESCE(array_agg(ta.user_id) FILTER (WHERE ta.user_id IS NOT NULL), '{}') AS assigned_user_ids
+       FROM attachments a
+       JOIN tasks t ON t.id = a.task_id
+       LEFT JOIN task_assignees ta ON ta.task_id = t.id
+       WHERE a.id = ? AND COALESCE(t.is_deleted, 0) = 0
+       GROUP BY a.id, t.id`,
+      [attachmentId]
+    );
+
+    if (!attachment) {
+      return res.status(404).json({ message: 'Khong tim thay file' });
+    }
+
+    if (!canViewTaskByRole(attachment, req.user)) {
+      return res.status(403).json({ message: 'Khong co quyen tai file nay' });
+    }
+
+    if (!/^https?:\/\//i.test(attachment.storage_path || '')) {
+      const localPath = path.join(uploadDir, attachment.storage_path);
+      if (!fs.existsSync(localPath)) {
+        return res.status(404).json({ message: 'Khong tim thay file vat ly' });
+      }
+      return res.download(localPath, attachment.file_name);
+    }
+
+    if (!attachment.storage_path.includes('.private.blob.vercel-storage.com')) {
+      return res.redirect(attachment.storage_path);
+    }
+
+    const { get: getBlob } = await import('@vercel/blob');
+    const pathname = new URL(attachment.storage_path).pathname.replace(/^\//, '');
+    const result = await getBlob(pathname, { access: 'private', useCache: false });
+    if (!result || result.statusCode !== 200) {
+      return res.status(404).json({ message: 'Khong tim thay file tren Blob' });
+    }
+
+    res.setHeader('Content-Type', result.blob.contentType || attachment.mime_type || 'application/octet-stream');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, no-cache');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(attachment.file_name)}"`);
+    return Readable.fromWeb(result.stream).pipe(res);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
 app.get('/api/tasks/:taskId/attachments', auth, async (req, res) => {
   try {
     const taskId = Number(req.params.taskId);
@@ -2333,3 +2389,8 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
+
+
+
+
