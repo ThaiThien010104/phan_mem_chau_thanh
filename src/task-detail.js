@@ -230,6 +230,40 @@ function bindFileDownloadButtons(wrap) {
   });
 }
 
+let blobClientModulePromise;
+
+function safeBlobFileName(name) {
+  return String(name || 'file').split(/[\/]/).pop().replace(/[^\w.\-]+/g, '-');
+}
+
+async function getBlobClientModule() {
+  if (!blobClientModulePromise) {
+    blobClientModulePromise = import('@vercel/blob/client');
+  }
+  return blobClientModulePromise;
+}
+
+async function uploadFileToBlob(file, label = 'file') {
+  if (!file) {
+    return null;
+  }
+
+  const { upload } = await getBlobClientModule();
+  const safeName = safeBlobFileName(file.name);
+  const pathname = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
+  const blob = await upload(pathname, file, {
+    access: 'private',
+    handleUploadUrl: '/api/blob/client-upload',
+    headers: { Authorization: `Bearer ${token}` },
+    contentType: file.type || 'application/octet-stream',
+    multipart: file.size > 8 * 1024 * 1024,
+    onUploadProgress: ({ percentage }) => {
+      setActionState(`Dang tai ${label}: ${file.name} (${Math.round(percentage)}%)`);
+    },
+  });
+
+  return { fileName: file.name, storagePath: blob.url, mimeType: file.type || 'application/octet-stream', fileSize: file.size };
+}
 function formatBytes(size) {
   const bytes = Number(size || 0);
   if (!bytes) {
@@ -262,74 +296,22 @@ function roleAlias(role) {
 
 async function submitAppraisalUpload(event) {
   event.preventDefault();
-  setActionState('Đang tải file...');
+  setActionState('Dang tai file...');
   try {
-    const formData = new FormData();
-    formData.append('note', document.getElementById('appraisal-note').value.trim());
+    const note = document.getElementById('appraisal-note').value.trim();
     const file = document.getElementById('appraisal-file').files[0];
-    if (file) {
-      formData.append('appraisalFile', file);
-    }
+    const uploadedFile = file ? await uploadFileToBlob(file, 'file ket qua tham dinh') : null;
 
-    await api(`/api/tasks/${taskId}/upload-appraisal`, { method: 'POST', body: formData });
-    setActionState('Tải file thành công');
+    await api(`/api/tasks/${taskId}/upload-appraisal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note, uploadedFile }),
+    });
+    setActionState('Tai file thanh cong');
     await loadData();
   } catch (error) {
     setActionState(error.message);
   }
-}
-
-function renderTaskInfo(task) {
-  document.getElementById('task-code').textContent = task.code;
-  document.getElementById('task-name').textContent = task.project_name || task.title || '-';
-  const displayStatus = task.current_stage === 'THAM_DINH' && task.status === 'APPROVED' ? 'Đã hoàn thành' : labelStatus(task.status);
-  document.getElementById('task-status').textContent = `${displayStatus} (${labelWorkflow(task.workflow_status)})`;
-  document.getElementById('task-owner').textContent = task.created_by_username || '-';
-  document.getElementById('task-created').textContent = fmtDate(task.created_at);
-  document.getElementById('task-assignee').textContent = task.assignee_username || 'Chưa giao';
-}
-
-function renderFiles(files) {
-  const wrap = document.getElementById('files-list');
-  if (!files.length) {
-    wrap.innerHTML = '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-500">Chua co file</p>';
-    return;
-  }
-
-  wrap.innerHTML = files
-    .map((f) => {
-      const downloadUrl = f.public_url || f.download_url || f.full_url || '';
-      return `
-        <article class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3">
-          <div>
-            <p class="text-sm font-semibold text-slate-800">${escapeHtml(f.file_name)}${f.exists ? '' : ' (Khong tim thay file vat ly)'}</p>
-            <p class="text-xs text-slate-500">Dung luong: ${escapeHtml(formatBytes(f.file_size))} | Cong doan: ${escapeHtml(labelStage(f.stage))} | ${escapeHtml(fmtDate(f.uploaded_at))}</p>
-          </div>
-          <button type="button" data-download-url="${escapeHtml(downloadUrl)}" data-file-name="${escapeHtml(f.file_name)}" class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400">Tai xuong</button>
-        </article>
-      `;
-    })
-    .join('');
-  bindFileDownloadButtons(wrap);
-}
-function renderTimeline(logs) {
-  const wrap = document.getElementById('timeline-list');
-  if (!logs.length) {
-    wrap.innerHTML = '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-500">Chưa có timeline</p>';
-    return;
-  }
-
-  wrap.innerHTML = logs
-    .map(
-      (log) => `
-        <article class="rounded-xl border border-slate-200 p-3">
-          <p class="text-sm font-bold text-slate-800">${escapeHtml(fmtDate(log.changed_at))} - ${escapeHtml(log.changed_by)}</p>
-          <p class="mt-1 text-sm text-slate-600">${escapeHtml(labelAction(log.action))}</p>
-          <p class="mt-1 text-sm text-slate-500">${escapeHtml(log.note || '')}</p>
-        </article>
-      `
-    )
-    .join('');
 }
 
 async function submitAssign(event) {
@@ -351,18 +333,19 @@ async function submitAssign(event) {
 
 async function submitReview(event) {
   event.preventDefault();
-  setActionState('Đang cập nhật...');
+  setActionState('Dang cap nhat...');
   try {
-    const formData = new FormData();
-    formData.append('result', document.getElementById('review-result').value);
-    formData.append('note', document.getElementById('review-note').value.trim());
+    const result = document.getElementById('review-result').value;
+    const note = document.getElementById('review-note').value.trim();
     const file = document.getElementById('review-file').files[0];
-    if (file) {
-      formData.append('reviewFile', file);
-    }
+    const uploadedFile = file ? await uploadFileToBlob(file, 'file danh gia') : null;
 
-    await api(`/api/tasks/${taskId}/review`, { method: 'POST', body: formData });
-    setActionState('Đã trình duyệt kết quả');
+    await api(`/api/tasks/${taskId}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ result, note, uploadedFile }),
+    });
+    setActionState('Da trinh duyet ket qua');
     await loadData();
   } catch (error) {
     setActionState(error.message);

@@ -20,6 +20,7 @@ const uploadDir = path.resolve(
 );
 const legacyUploadDir = path.resolve('./uploads');
 const maxUploadBytes = Number(process.env.MAX_UPLOAD_MB || 25) * 1024 * 1024;
+const maxBlobUploadBytes = Number(process.env.MAX_BLOB_UPLOAD_MB || 500) * 1024 * 1024;
 const allowedUploadMimeTypes = new Set([
   'application/pdf',
   'application/msword',
@@ -91,6 +92,7 @@ app.use('/files', express.static(uploadDir));
 app.use('/uploads', express.static(uploadDir));
 app.use('/legacy-files', express.static(legacyUploadDir));
 app.use('/public', express.static(path.resolve(__dirname, 'public')));
+app.use('/vendor/vercel-blob', express.static(path.resolve(__dirname, '../node_modules/@vercel/blob/dist')));
 
 // Serve frontend static assets (css/js/images)
 app.use(express.static(path.resolve(__dirname)));
@@ -300,6 +302,48 @@ async function saveUploadedFile(file) {
   } catch (error) {
     throw new Error(`Khong luu duoc file len Vercel Blob: ${error.message}`);
   }
+}
+
+function normalizeBlobFileMetadata(file) {
+  if (!file || typeof file !== 'object') {
+    return null;
+  }
+
+  const fileName = String(file.fileName || file.name || '').trim();
+  const storagePath = String(file.storagePath || file.url || '').trim();
+  const mimeType = String(file.mimeType || file.type || 'application/octet-stream').trim();
+  const fileSize = Number(file.fileSize || file.size || 0);
+
+  if (!fileName || !storagePath) {
+    return null;
+  }
+  if (!/^https?:\/\//i.test(storagePath)) {
+    throw new Error('Duong dan file Blob khong hop le');
+  }
+  if (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > maxBlobUploadBytes) {
+    throw new Error('Dung luong file vuot gioi han ' + Math.round(maxBlobUploadBytes / 1024 / 1024) + ' MB');
+  }
+  if (mimeType && mimeType !== 'application/octet-stream' && !allowedUploadMimeTypes.has(mimeType)) {
+    throw new Error('Loai file khong duoc ho tro');
+  }
+
+  return { fileName, storagePath, mimeType, fileSize };
+}
+
+function getBlobFile(req, key) {
+  return normalizeBlobFileMetadata(req.body && req.body[key]);
+}
+
+function getBlobFiles(req, key) {
+  const files = req.body && Array.isArray(req.body[key]) ? req.body[key] : [];
+  return files.map((file) => normalizeBlobFileMetadata(file)).filter(Boolean);
+}
+
+async function insertAttachment(taskId, userId, stage, storedFile) {
+  await run(
+    'INSERT INTO attachments (task_id, uploaded_by, stage, file_name, storage_path, mime_type, file_size) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [taskId, userId, stage, storedFile.fileName, storedFile.storagePath, storedFile.mimeType, storedFile.fileSize]
+  );
 }
 
 function normalizeDueAt(value) {
@@ -787,6 +831,26 @@ app.get('/api/dashboard/summary', auth, async (req, res) => {
   }
 });
 
+app.post('/api/blob/client-upload', auth, async (req, res) => {
+  try {
+    const { handleUpload } = await import('@vercel/blob/client');
+    const jsonResponse = await handleUpload({
+      body: req.body,
+      request: req,
+      onBeforeGenerateToken: async () => ({
+        allowedContentTypes: Array.from(allowedUploadMimeTypes),
+        maximumSizeInBytes: maxBlobUploadBytes,
+        addRandomSuffix: false,
+        tokenPayload: JSON.stringify({ userId: req.user.id }),
+      }),
+      onUploadCompleted: async () => {},
+    });
+    return res.json(jsonResponse);
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+});
+
 app.get('/api/tasks', auth, async (req, res) => {
   try {
     const page = parsePositiveInteger(req.query.page, 1);
@@ -855,7 +919,8 @@ app.post('/api/tasks', auth, requireRole('KINH_DOANH'), uploadMultiple, async (r
     }
 
     const proposalFile = req.files && req.files.proposalFile && req.files.proposalFile[0];
-    if (!proposalFile) {
+    const proposalBlobFile = getBlobFile(req, 'proposalFileBlob');
+    if (!proposalFile && !proposalBlobFile) {
       return res.status(400).json({ message: 'Phieu de nghi la bat buoc' });
     }
 
@@ -893,7 +958,7 @@ app.post('/api/tasks', auth, requireRole('KINH_DOANH'), uploadMultiple, async (r
       ]
     );
 
-    const proposalStoredFile = await saveUploadedFile(proposalFile);
+    const proposalStoredFile = proposalBlobFile || await saveUploadedFile(proposalFile);
 
     // Upload proposal file
     await run(
@@ -925,9 +990,13 @@ app.post('/api/tasks', auth, requireRole('KINH_DOANH'), uploadMultiple, async (r
 
     // Upload document files
     const documentFiles = req.files && req.files.documentFiles || [];
-    if (documentFiles.length > 0) {
-      for (const docFile of documentFiles) {
-        const storedDocFile = await saveUploadedFile(docFile);
+    const documentBlobFiles = getBlobFiles(req, 'documentFileBlobs');
+    const storedDocumentFiles = [
+      ...documentBlobFiles,
+      ...await Promise.all(documentFiles.map((docFile) => saveUploadedFile(docFile))),
+    ];
+    if (storedDocumentFiles.length > 0) {
+      for (const storedDocFile of storedDocumentFiles) {
         await run(
           `INSERT INTO attachments (task_id, uploaded_by, stage, file_name, storage_path, mime_type, file_size)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -951,12 +1020,11 @@ app.post('/api/tasks', auth, requireRole('KINH_DOANH'), uploadMultiple, async (r
           'KINH_DOANH',
           'KINH_DOANH',
           'UPLOAD',
-          `${req.user.username} da upload ${documentFiles.length} tai lieu cho ho so ${code}`,
+          `${req.user.username} da upload ${storedDocumentFiles.length} tai lieu cho ho so ${code}`,
           req.user.id,
         ]
       );
     }
-
     const createdTask = await get(
       `SELECT id, code, title, description, project_name, customer_name, due_at, current_stage, status, created_at
        FROM tasks
@@ -1309,8 +1377,9 @@ app.post('/api/admin/tasks', auth, requireRole('ADMIN'), uploadMultiple, async (
     );
 
     const proposalFile = req.files && req.files.proposalFile && req.files.proposalFile[0];
-    if (proposalFile) {
-      const proposalStoredFile = await saveUploadedFile(proposalFile);
+    const proposalBlobFile = getBlobFile(req, 'proposalFileBlob');
+    const proposalStoredFile = proposalBlobFile || (proposalFile ? await saveUploadedFile(proposalFile) : null);
+    if (proposalStoredFile) {
       await run(
         `INSERT INTO attachments (task_id, uploaded_by, stage, file_name, storage_path, mime_type, file_size)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -1332,9 +1401,13 @@ app.post('/api/admin/tasks', auth, requireRole('ADMIN'), uploadMultiple, async (
     }
 
     const documentFiles = (req.files && req.files.documentFiles) || [];
-    if (documentFiles.length > 0) {
-      for (const docFile of documentFiles) {
-        const storedDocFile = await saveUploadedFile(docFile);
+    const documentBlobFiles = getBlobFiles(req, 'documentFileBlobs');
+    const storedDocumentFiles = [
+      ...documentBlobFiles,
+      ...await Promise.all(documentFiles.map((docFile) => saveUploadedFile(docFile))),
+    ];
+    if (storedDocumentFiles.length > 0) {
+      for (const storedDocFile of storedDocumentFiles) {
         await run(
           `INSERT INTO attachments (task_id, uploaded_by, stage, file_name, storage_path, mime_type, file_size)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -1352,7 +1425,7 @@ app.post('/api/admin/tasks', auth, requireRole('ADMIN'), uploadMultiple, async (
       await run(
         `INSERT INTO task_logs (task_id, from_stage, to_stage, action, note, changed_by)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [created.lastID, stage, stage, 'UPLOAD', `${req.user.username} da upload ${documentFiles.length} tai lieu cho ho so ${code}`, req.user.id]
+        [created.lastID, stage, stage, 'UPLOAD', `${req.user.username} da upload ${storedDocumentFiles.length} tai lieu cho ho so ${code}`, req.user.id]
       );
     }
 
@@ -1607,7 +1680,8 @@ app.post('/api/tasks/:taskId/upload-appraisal', auth, requireRole('THAM_DINH'), 
       return res.status(403).json({ message: 'Ban chi duoc upload ket qua cho ho so duoc giao' });
     }
 
-    if (!req.file) {
+    const appraisalBlobFile = getBlobFile(req, 'uploadedFile');
+    if (!req.file && !appraisalBlobFile) {
       return res.status(400).json({ message: 'Can upload file ket qua tham dinh' });
     }
 
@@ -1623,7 +1697,7 @@ app.post('/api/tasks/:taskId/upload-appraisal', auth, requireRole('THAM_DINH'), 
       return res.status(400).json({ message: 'Khong co tham dinh vien dang hoat dong de ban giao' });
     }
 
-    const storedAppraisalFile = await saveUploadedFile(req.file);
+    const storedAppraisalFile = appraisalBlobFile || await saveUploadedFile(req.file);
 
     await run(
       `INSERT INTO attachments (task_id, uploaded_by, stage, file_name, storage_path, mime_type, file_size)

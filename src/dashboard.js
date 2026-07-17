@@ -220,6 +220,51 @@ async function api(url, options = {}) {
   return data;
 }
 
+let blobClientModulePromise;
+
+function safeBlobFileName(name) {
+  return String(name || 'file').split(/[\/]/).pop().replace(/[^\w.\-]+/g, '-');
+}
+
+async function getBlobClientModule() {
+  if (!blobClientModulePromise) {
+    blobClientModulePromise = import('@vercel/blob/client');
+  }
+  return blobClientModulePromise;
+}
+
+async function uploadFileToBlob(file, stateEl, label = 'file') {
+  if (!file) {
+    return null;
+  }
+
+  const { upload } = await getBlobClientModule();
+  const safeName = safeBlobFileName(file.name);
+  const pathname = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
+  const blob = await upload(pathname, file, {
+    access: 'private',
+    handleUploadUrl: '/api/blob/client-upload',
+    headers: { Authorization: `Bearer ${authToken}` },
+    contentType: file.type || 'application/octet-stream',
+    multipart: file.size > 8 * 1024 * 1024,
+    onUploadProgress: ({ percentage }) => {
+      if (stateEl) {
+        stateEl.textContent = `Dang tai ${label}: ${file.name} (${Math.round(percentage)}%)`;
+      }
+    },
+  });
+
+  return { fileName: file.name, storagePath: blob.url, mimeType: file.type || 'application/octet-stream', fileSize: file.size };
+}
+
+async function uploadFilesToBlob(files, stateEl, label = 'file') {
+  const list = Array.from(files || []);
+  const uploaded = [];
+  for (let i = 0; i < list.length; i += 1) {
+    uploaded.push(await uploadFileToBlob(list[i], stateEl, `${label} ${i + 1}/${list.length}`));
+  }
+  return uploaded.filter(Boolean);
+}
 function formatDate(sqlDateTime) {
   if (!sqlDateTime) {
     return '-';
@@ -597,22 +642,20 @@ function openReviewModal(taskId) {
 async function submitReview(event) {
   event.preventDefault();
   const stateEl = document.getElementById('action-state');
-  stateEl.textContent = 'Đang xử lý...';
+  stateEl.textContent = 'Dang xu ly...';
 
   try {
-    const formData = new FormData();
-    formData.append('result', document.getElementById('review-result').value);
-    formData.append('note', document.getElementById('review-note').value.trim());
+    const result = document.getElementById('review-result').value;
+    const note = document.getElementById('review-note').value.trim();
     const file = document.getElementById('review-file').files[0];
-    if (file) {
-      formData.append('reviewFile', file);
-    }
+    const uploadedFile = file ? await uploadFileToBlob(file, stateEl, 'file danh gia') : null;
 
     await api(`/api/tasks/${selectedTaskId}/review`, {
       method: 'POST',
-      body: formData,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ result, note, uploadedFile }),
     });
-    stateEl.textContent = 'Đánh giá thành công';
+    stateEl.textContent = 'Danh gia thanh cong';
     await loadDashboard();
   } catch (error) {
     stateEl.textContent = error.message;
@@ -646,21 +689,19 @@ function openUploadAppraisalModal(taskId) {
 async function submitUploadAppraisal(event) {
   event.preventDefault();
   const stateEl = document.getElementById('action-state');
-  stateEl.textContent = 'Đang tải file...';
+  stateEl.textContent = 'Dang tai file...';
 
   try {
-    const formData = new FormData();
-    formData.append('note', document.getElementById('appraisal-note').value.trim());
+    const note = document.getElementById('appraisal-note').value.trim();
     const file = document.getElementById('appraisal-file').files[0];
-    if (file) {
-      formData.append('appraisalFile', file);
-    }
+    const uploadedFile = file ? await uploadFileToBlob(file, stateEl, 'file ket qua tham dinh') : null;
 
     await api(`/api/tasks/${selectedTaskId}/upload-appraisal`, {
       method: 'POST',
-      body: formData,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note, uploadedFile }),
     });
-    stateEl.textContent = 'Tải file thành công';
+    stateEl.textContent = 'Tai file thanh cong';
     await loadDashboard();
   } catch (error) {
     stateEl.textContent = error.message;
@@ -913,25 +954,17 @@ function setupCreateModal() {
       const description = document.getElementById('project-description').value.trim();
       const dueAt = document.getElementById('due-at').value;
 
-      const formData = new FormData();
-      formData.append('projectName', projectName);
-      formData.append('customerName', customerName);
-      formData.append('description', description);
-      formData.append('dueAt', dueAt);
-
-      const file = document.getElementById('proposal-upload').files[0];
-      if (file) {
-        formData.append('proposalFile', file);
-      }
-
+      const proposalFile = document.getElementById('proposal-upload').files[0];
       const documentFiles = document.getElementById('documents-upload').files;
-      for (let i = 0; i < documentFiles.length; i++) {
-        formData.append('documentFiles', documentFiles[i]);
-      }
+      const proposalFileBlob = proposalFile ? await uploadFileToBlob(proposalFile, stateEl, 'phieu de nghi') : null;
+      const documentFileBlobs = await uploadFilesToBlob(documentFiles, stateEl, 'tai lieu ho so');
 
       const createUrl = authUser.role === 'ADMIN' ? '/api/admin/tasks' : '/api/tasks';
-      await api(createUrl, { method: 'POST', body: formData });
-
+      await api(createUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectName, customerName, description, dueAt, proposalFileBlob, documentFileBlobs }),
+      });
       stateEl.textContent = 'Tao ho so thanh cong';
       event.target.reset();
       documentsList.innerHTML = '';

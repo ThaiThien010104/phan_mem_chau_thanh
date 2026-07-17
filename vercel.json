@@ -7,7 +7,8 @@
       "config": {
         "includeFiles": [
           "src/**",
-          "jobs/**"
+          "jobs/**",
+          "node_modules/@vercel/blob/dist/**"
         ]
       }
     }
