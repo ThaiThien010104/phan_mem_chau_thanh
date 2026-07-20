@@ -56,29 +56,29 @@
   });
 
   Object.assign(actionLabels, {
-    CREATE: 'Tao ho so',
-    ADMIN_CREATE_TASK: 'Admin tao ho so',
-    ADMIN_UPDATE_TASK: 'Admin cap nhat ho so',
-    UPLOAD: 'Tai phieu de nghi',
-    ASSIGN: 'Giao tham dinh',
-    REVIEW_RESULT: 'Tra ket qua tham dinh',
-    REVIEW_REJECT: 'Ket luan khong dat',
-    UPLOAD_REVIEW_FILE: 'Tai file ket qua',
-    REVIEW_NOTE: 'Ghi chu tham dinh',
-    MOVE_PRINT: 'Chuyen in an',
-    UPLOAD_APPRAISAL_FILE: 'Tham dinh tai file ket qua',
-    APPRAISER_RESULT_PASS: 'Tham dinh vien danh gia dat',
-    APPRAISER_RESULT_FAIL: 'Tham dinh vien danh gia khong dat',
-    UPLOAD_APPRAISER_FILE: 'Tai file ket qua tham dinh vien',
-    APPRAISER_NOTE: 'Ghi chu tham dinh vien',
-    APPRAISAL_COMPLETED: 'Hoan thanh cong doan tham dinh',
-    HANDOFF_TO_APPRAISER: 'Ban giao cho tham dinh vien',
-    RETURN_TO_REVIEWER: 'Tra ho so cho tham dinh lam lai',
-    MANAGER_APPROVE: 'Truong phong phe duyet',
-    MANAGER_REJECT: 'Truong phong tu choi',
-    COMPLETE_PRINT: 'Hoan tat in an',
-    ARCHIVE_TASK: 'Luu tru ho so',
-    RESTORE_TASK: 'Khoi phuc ho so',
+    CREATE: 'Tạo hồ sơ',
+    ADMIN_CREATE_TASK: 'Admin tạo hồ sơ',
+    ADMIN_UPDATE_TASK: 'Admin cập nhật hồ sơ',
+    UPLOAD: 'Tải phiếu đề nghị',
+    ASSIGN: 'Giao thẩm định',
+    REVIEW_RESULT: 'Trả kết quả thẩm định',
+    REVIEW_REJECT: 'Kết luận không đạt',
+    UPLOAD_REVIEW_FILE: 'ải file kết quả',
+    REVIEW_NOTE: 'Ghi chú thẩm định',
+    MOVE_PRINT: 'Chuyển in ấn',
+    UPLOAD_APPRAISAL_FILE: 'Thẩm định tải file kết quả',
+    APPRAISER_RESULT_PASS: 'Thẩm định viên đánh giá đạt',
+    APPRAISER_RESULT_FAIL: 'Thẩm định viên đánh giá không đạt',
+    UPLOAD_APPRAISER_FILE: 'Tải file kết quả thẩm định viên',
+    APPRAISER_NOTE: 'Ghi chú thẩm định viên',
+    APPRAISAL_COMPLETED: 'Hoàn thành công đoạn thẩm định',
+    HANDOFF_TO_APPRAISER: 'Bàn giao cho thẩm định viên',
+    RETURN_TO_REVIEWER: 'Trả hồ sơ cho thẩm định làm lại',
+    MANAGER_APPROVE: 'Trưởng phòng phê duyệt',
+    MANAGER_REJECT: 'Trưởng phòng từ chối',
+    COMPLETE_PRINT: 'Hoàn tất in ấn',
+    ARCHIVE_TASK: 'Lưu trữ hồ sơ',
+    RESTORE_TASK: 'Khôi phục hồ sơ',
   });
 
   const listState = {
@@ -359,8 +359,8 @@
           <p class="text-xs font-bold text-slate-500">${escapeHtml(formatDate(item.changed_at))}</p>
         </div>
         <div class="mt-3 grid gap-1 text-sm text-slate-600">
-          <p>Thuc hien boi: <span class="font-bold text-slate-800">${escapeHtml(item.changed_by || '-')}</span></p>
-          <p>Chuyen buoc: <span class="font-bold text-slate-800">${escapeHtml(labelStage(item.from_stage))} -> ${escapeHtml(labelStage(item.to_stage))}</span></p>
+          <p>Thực hiện bởi: <span class="font-bold text-slate-800">${escapeHtml(item.changed_by || '-')}</span></p>
+          <p>Chuyển bước: <span class="font-bold text-slate-800">${escapeHtml(labelStage(item.from_stage))} -> ${escapeHtml(labelStage(item.to_stage))}</span></p>
           ${item.note ? `<p class="text-slate-500">${escapeHtml(item.note)}</p>` : ''}
         </div>
       </article>

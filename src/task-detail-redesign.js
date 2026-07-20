@@ -9,65 +9,65 @@
   });
 
   Object.assign(statusLabels, {
-    PENDING: 'Cho xu ly',
-    IN_PROGRESS: 'Dang xu ly',
-    APPROVED: 'Dat - cho Kinh doanh chuyen in an',
-    REJECTED: 'Khong dat',
-    ON_HOLD: 'Tam dung',
+    PENDING: 'Chờ xử lý',
+    IN_PROGRESS: 'Đang xử lý',
+    APPROVED: 'Đạt - cho Kinh doanh chuyển in an',
+    REJECTED: 'Không đạt',
+    ON_HOLD: 'Đang tạm dừng',
   });
 
   Object.assign(workflowLabels, {
-    new: 'Ho so moi',
-    in_review: 'Dang tham dinh',
-    approved: 'Da co ket qua tham dinh',
-    printing: 'Da chuyen in an',
-    rejected: 'Can tham dinh lam lai',
-    done: 'Hoan tat',
-    in_progress: 'Dang xu ly',
+    new: 'Hồ sơ mới',
+    in_review: 'Đang thẩm định',
+    approved: 'Đã có kết quả thẩm định',
+    printing: 'Đã chuyển in ấn',
+    rejected: 'ần thẩm định lại',
+    done: 'Hoàn tất',
+    in_progress: 'Đang xử lý',
   });
 
   Object.assign(slaLabels, {
-    no_due: 'Chua dat han',
-    on_track: 'Dung han',
-    due_soon: 'Sap den han',
-    overdue: 'Qua han',
-    completed: 'Da hoan tat',
+    no_due: 'Chưa đạt hạn',
+    on_track: 'Đúng hạn',
+    due_soon: 'Sắp đến hạn',
+    overdue: 'Quá hạn',
+    completed: 'Đã hoàn tất',
   });
 
   Object.assign(actionLabels, {
-    CREATE: 'Tao ho so',
-    ADMIN_CREATE_TASK: 'Admin tao ho so',
-    ADMIN_UPDATE_TASK: 'Admin cap nhat ho so',
-    UPLOAD: 'Tai phieu de nghi',
-    ASSIGN: 'Giao tham dinh',
-    REVIEW_RESULT: 'Tham dinh vien tra ket qua',
-    REVIEW_REJECT: 'Tham dinh vien ket luan khong dat',
-    UPLOAD_REVIEW_FILE: 'Tai file ket qua',
-    REVIEW_NOTE: 'Ghi chu tham dinh',
-    MOVE_PRINT: 'Kinh doanh chuyen in an',
-    UPLOAD_APPRAISAL_FILE: 'Tham dinh tai file ket qua',
-    APPRAISER_RESULT_PASS: 'Tham dinh vien danh gia dat',
-    APPRAISER_RESULT_FAIL: 'Tham dinh vien danh gia khong dat',
-    UPLOAD_APPRAISER_FILE: 'Tai file ket qua tham dinh vien',
-    APPRAISER_NOTE: 'Ghi chu tham dinh vien',
-    APPRAISAL_COMPLETED: 'Hoan thanh cong doan tham dinh',
-    HANDOFF_TO_APPRAISER: 'Ban giao cho tham dinh vien',
-    RETURN_TO_REVIEWER: 'Tra ho so cho tham dinh lam lai',
-    MANAGER_APPROVE: 'Truong phong phe duyet',
-    MANAGER_REJECT: 'Truong phong tu choi',
-    COMPLETE_PRINT: 'Hoan tat in an',
-    ARCHIVE_TASK: 'Luu tru ho so',
-    RESTORE_TASK: 'Khoi phuc ho so',
+    CREATE: 'Tạo hồ sơ',
+    ADMIN_CREATE_TASK: 'Admin tạo hồ sơ',
+    ADMIN_UPDATE_TASK: 'Admin cập nhật hồ sơ',
+    UPLOAD: 'Tải phiếu đề nghị',
+    ASSIGN: 'Giao thẩm định',
+    REVIEW_RESULT: 'Thẩm định viên trả kết quả',
+    REVIEW_REJECT: 'Thẩm định viên kết luận không đạt',
+    UPLOAD_REVIEW_FILE: 'Tải file kết quả',
+    REVIEW_NOTE: 'Ghi chú thẩm định',
+    MOVE_PRINT: 'Kinh doanh chuyển in ấn',
+    UPLOAD_APPRAISAL_FILE: 'Thẩm định tải file kết quả',
+    APPRAISER_RESULT_PASS: 'Thẩm định viên đánh giá đạt',
+    APPRAISER_RESULT_FAIL: 'Thẩm định viên đánh giá không đạt',
+    UPLOAD_APPRAISER_FILE: 'Tải file kết quả thẩm định viên',
+    APPRAISER_NOTE: 'Ghi chú thẩm định viên',
+    APPRAISAL_COMPLETED: 'Hoàn thành công đoạn thẩm định',
+    HANDOFF_TO_APPRAISER: 'Bàn giao cho thẩm định viên',
+    RETURN_TO_REVIEWER: 'Trả hồ sơ cho thẩm định làm lại',
+    MANAGER_APPROVE: 'Trưởng phòng phê duyệt',
+    MANAGER_REJECT: 'Trưởng phòng từ chối',
+    COMPLETE_PRINT: 'Hoàn tất in ấn',
+    ARCHIVE_TASK: 'Lưu trữ hồ sơ',
+    RESTORE_TASK: 'Khôi phục hồ sơ',
   });
 
   renderTaskInfo = function renderTaskInfo(task) {
-    const displayStatus = task.current_stage === 'THAM_DINH' && task.status === 'APPROVED' ? 'Da hoan thanh' : labelStatus(task.status);
+    const displayStatus = task.current_stage === 'THAM_DINH' && task.status === 'APPROVED' ? 'Đã hoàn thành' : labelStatus(task.status);
     document.getElementById('task-code').textContent = task.code || '-';
     document.getElementById('task-name').textContent = task.project_name || task.title || '-';
     document.getElementById('task-status').textContent = `${displayStatus} (${labelWorkflow(task.workflow_status)})`;
     document.getElementById('task-owner').textContent = task.created_by_username || '-';
     document.getElementById('task-created').textContent = fmtDate(task.created_at);
-    document.getElementById('task-assignee').textContent = task.assignee_username || 'Chua giao';
+    document.getElementById('task-assignee').textContent = task.assignee_username || 'Chưa giao';
   };
 
   renderFiles = function renderFiles(files) {
@@ -129,7 +129,7 @@
           <p class="text-sm font-extrabold text-slate-950">${escapeHtml(labelAction(log.action))}</p>
           <p class="text-xs font-bold text-slate-500">${escapeHtml(fmtDate(log.changed_at))}</p>
         </div>
-        <p class="mt-1 text-sm text-slate-600">Thuc hien boi <span class="font-bold">${escapeHtml(log.changed_by)}</span></p>
+        <p class="mt-1 text-sm text-slate-600">Thực hiện bởi <span class="font-bold">${escapeHtml(log.changed_by)}</span></p>
         ${log.note ? `<p class="mt-1 text-sm text-slate-500">${escapeHtml(log.note)}</p>` : ''}
       </article>
     `).join('');

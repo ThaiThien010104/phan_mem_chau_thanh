@@ -1385,7 +1385,7 @@ app.post('/api/admin/tasks', auth, requireRole('ADMIN'), uploadMultiple, async (
         null,
         stage,
         'ADMIN_CREATE_TASK',
-        `${req.user.username} tao ho so ${code}`,
+        `${req.user.username} tạo hồ sơ ${code}`,
         req.user.id,
       ]
     );
@@ -1410,7 +1410,7 @@ app.post('/api/admin/tasks', auth, requireRole('ADMIN'), uploadMultiple, async (
       await run(
         `INSERT INTO task_logs (task_id, from_stage, to_stage, action, note, changed_by)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [created.lastID, stage, stage, 'UPLOAD', `${req.user.username} da upload Phieu de nghi cho ho so ${code}`, req.user.id]
+        [created.lastID, stage, stage, 'UPLOAD', `${req.user.username} đã upload Phiếu đề nghị cho hồ sơ ${code}`, req.user.id]
       );
     }
 
@@ -1439,7 +1439,7 @@ app.post('/api/admin/tasks', auth, requireRole('ADMIN'), uploadMultiple, async (
       await run(
         `INSERT INTO task_logs (task_id, from_stage, to_stage, action, note, changed_by)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [created.lastID, stage, stage, 'UPLOAD', `${req.user.username} da upload ${storedDocumentFiles.length} tai lieu cho ho so ${code}`, req.user.id]
+        [created.lastID, stage, stage, 'UPLOAD', `${req.user.username} đã upload ${storedDocumentFiles.length} tài liệu cho hồ sơ ${code}`, req.user.id]
       );
     }
 
@@ -1453,12 +1453,12 @@ app.put('/api/admin/tasks/:taskId', auth, requireRole('ADMIN'), async (req, res)
   try {
     const taskId = Number(req.params.taskId);
     if (!Number.isInteger(taskId) || taskId <= 0) {
-      return res.status(400).json({ message: 'Ho so khong hop le' });
+      return res.status(400).json({ message: 'Hồ sơ không hợp lệ' });
     }
 
     const task = await get('SELECT * FROM tasks WHERE id = ? AND COALESCE(is_deleted, 0) = 0', [taskId]);
     if (!task) {
-      return res.status(404).json({ message: 'Ho so khong ton tai' });
+      return res.status(404).json({ message: 'Hồ sơ không tồn tại' });
     }
 
     const { projectName, customerName, description, dueAt, currentStage, status, assigneeId } = req.body;
@@ -1467,7 +1467,7 @@ app.put('/api/admin/tasks/:taskId', auth, requireRole('ADMIN'), async (req, res)
 
     if (typeof projectName === 'string') {
       if (!projectName.trim()) {
-        return res.status(400).json({ message: 'Ten du an khong duoc de trong' });
+        return res.status(400).json({ message: 'Tên dự án không được để trống' });
       }
       sets.push('title = ?', 'project_name = ?');
       params.push(projectName.trim(), projectName.trim());
@@ -1475,7 +1475,7 @@ app.put('/api/admin/tasks/:taskId', auth, requireRole('ADMIN'), async (req, res)
 
     if (typeof customerName === 'string') {
       if (!customerName.trim()) {
-        return res.status(400).json({ message: 'Khach hang khong duoc de trong' });
+        return res.status(400).json({ message: 'Khách hàng không được để trống' });
       }
       sets.push('customer_name = ?');
       params.push(customerName.trim());
@@ -1493,7 +1493,7 @@ app.put('/api/admin/tasks/:taskId', auth, requireRole('ADMIN'), async (req, res)
 
     if (typeof currentStage !== 'undefined') {
       if (!VALID_TASK_STAGES.includes(currentStage)) {
-        return res.status(400).json({ message: 'Cong doan khong hop le' });
+        return res.status(400).json({ message: 'Công đoạn không hợp lệ' });
       }
       sets.push('current_stage = ?');
       params.push(currentStage);
@@ -1501,7 +1501,7 @@ app.put('/api/admin/tasks/:taskId', auth, requireRole('ADMIN'), async (req, res)
 
     if (typeof status !== 'undefined') {
       if (!VALID_TASK_STATUS.includes(status)) {
-        return res.status(400).json({ message: 'Trang thai khong hop le' });
+        return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
       }
       sets.push('status = ?');
       params.push(status);
@@ -1513,7 +1513,7 @@ app.put('/api/admin/tasks/:taskId', auth, requireRole('ADMIN'), async (req, res)
       } else {
         const assignee = await get('SELECT id, is_active FROM users WHERE id = ?', [Number(assigneeId)]);
         if (!assignee || !assignee.is_active) {
-          return res.status(400).json({ message: 'Nguoi duoc giao khong hop le' });
+          return res.status(400).json({ message: 'Người được giao không hợp lệ' });
         }
         sets.push('assignee_id = ?');
         params.push(Number(assigneeId));
@@ -1521,7 +1521,7 @@ app.put('/api/admin/tasks/:taskId', auth, requireRole('ADMIN'), async (req, res)
     }
 
     if (!sets.length) {
-      return res.status(400).json({ message: 'Khong co du lieu can cap nhat' });
+      return res.status(400).json({ message: 'Không có dữ liệu cần cập nhật' });
     }
 
     sets.push('updated_at = CURRENT_TIMESTAMP');
@@ -1538,12 +1538,12 @@ app.put('/api/admin/tasks/:taskId', auth, requireRole('ADMIN'), async (req, res)
         task.current_stage,
         updated.current_stage,
         'ADMIN_UPDATE_TASK',
-        `${req.user.username} cap nhat ho so ${updated.code}`,
+        `${req.user.username} cập nhật hồ sơ ${updated.code}`,
         req.user.id,
       ]
     );
 
-    return res.json({ message: 'Cap nhat ho so thanh cong', task: updated });
+    return res.json({ message: 'Cập nhật hồ sơ thành công', task: updated });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -1553,12 +1553,12 @@ app.delete('/api/admin/tasks/:taskId', auth, requireRole('ADMIN'), async (req, r
   try {
     const taskId = Number(req.params.taskId);
     if (!Number.isInteger(taskId) || taskId <= 0) {
-      return res.status(400).json({ message: 'Ho so khong hop le' });
+      return res.status(400).json({ message: 'Hồ sơ không hợp lệ' });
     }
 
     const task = await get('SELECT id, code, current_stage FROM tasks WHERE id = ? AND COALESCE(is_deleted, 0) = 0', [taskId]);
     if (!task) {
-      return res.status(404).json({ message: 'Ho so khong ton tai' });
+      return res.status(404).json({ message: 'Hồ sơ không tồn tại' });
     }
 
     await run(
@@ -1598,13 +1598,13 @@ app.post('/api/tasks/:taskId/assign', auth, requireRole('ADMIN', 'TP_DUYET'), as
 
     const task = await get('SELECT id, code, current_stage FROM tasks WHERE id = ?', [taskId]);
     if (!task) {
-      return res.status(404).json({ message: 'Task khong ton tai' });
+      return res.status(404).json({ message: 'Task không tồn tại' });
     }
 
     // Handle both single ID (backward compatibility) and array
     const ids = Array.isArray(reviewerIds) ? reviewerIds : [reviewerIds];
     if (ids.length === 0) {
-      return res.status(400).json({ message: 'Phai chi dinh it nhat 1 tham dinh vien' });
+      return res.status(400).json({ message: 'Phải chỉ định ít nhất 1 thẩm định viên' });
     }
 
     // Validate all reviewers
@@ -1615,7 +1615,7 @@ app.post('/api/tasks/:taskId/assign', auth, requireRole('ADMIN', 'TP_DUYET'), as
         [Number(id)]
       );
       if (!reviewer || reviewer.role !== 'THAM_DINH' || !reviewer.is_active) {
-        return res.status(400).json({ message: `Tham dinh vien ID ${id} khong hop le` });
+        return res.status(400).json({ message: `Thẩm định viên ID ${id} không hợp lệ` });
       }
       reviewers.push(reviewer);
     }
@@ -1654,7 +1654,7 @@ app.post('/api/tasks/:taskId/assign', auth, requireRole('ADMIN', 'TP_DUYET'), as
         task.current_stage,
         'THAM_DINH',
         'ASSIGN',
-        `${req.user.username} da chuyen ho so ${task.code} cho ${reviewers.length > 1 ? `nhom ${reviewers.length} tham dinh vien` : `${reviewerNames}`}`,
+        `${req.user.username} đã chuyển hồ sơ ${task.code} cho ${reviewers.length > 1 ? `nhóm ${reviewers.length} thẩm định viên` : `${reviewerNames}`}`,
         req.user.id,
       ]
     );
@@ -1663,12 +1663,12 @@ app.post('/api/tasks/:taskId/assign', auth, requireRole('ADMIN', 'TP_DUYET'), as
       userId: reviewer.id,
       taskId,
       type: 'TASK_ASSIGNED',
-      title: `Ho so ${task.code} vua duoc giao`,
-      message: `${req.user.username} da giao ho so ${task.code} cho ban xu ly.`,
+      title: `Hồ sơ ${task.code} vừa được giao`,
+      message: `${req.user.username} đã giao hồ sơ ${task.code} cho bạn xử lý.`,
     })));
 
     return res.json({ 
-      message: `Chi dinh ${reviewers.length} tham dinh vien thanh cong`,
+      message: `Chỉ định ${reviewers.length} thẩm định viên thành công`,
       assignees: reviewers.map((r) => ({ id: r.id, username: r.username, full_name: r.full_name }))
     });
   } catch (error) {
@@ -1687,16 +1687,16 @@ app.post('/api/tasks/:taskId/upload-appraisal', auth, requireRole('THAM_DINH'), 
 
     const task = await get('SELECT * FROM tasks WHERE id = ? AND COALESCE(is_deleted, 0) = 0', [taskId]);
     if (!task) {
-      return res.status(404).json({ message: 'Task khong ton tai' });
+      return res.status(404).json({ message: 'Task không tồn tại' });
     }
 
     if (Number(task.assignee_id) !== Number(req.user.id)) {
-      return res.status(403).json({ message: 'Ban chi duoc upload ket qua cho ho so duoc giao' });
+      return res.status(403).json({ message: 'Bạn chỉ được upload kết quả cho hồ sơ được giao' });
     }
 
     const appraisalBlobFile = getBlobFile(req, 'uploadedFile');
     if (!req.file && !appraisalBlobFile) {
-      return res.status(400).json({ message: 'Can upload file ket qua tham dinh' });
+      return res.status(400).json({ message: 'Cần upload file kết quả thẩm định' });
     }
 
     const appraiser = await get(
@@ -1708,7 +1708,7 @@ app.post('/api/tasks/:taskId/upload-appraisal', auth, requireRole('THAM_DINH'), 
     );
 
     if (!appraiser) {
-      return res.status(400).json({ message: 'Khong co tham dinh vien dang hoat dong de ban giao' });
+      return res.status(400).json({ message: 'Không có thẩm định viên đang hoạt động để bàn giao' });
     }
 
     const storedAppraisalFile = appraisalBlobFile || await saveUploadedFile(req.file);
@@ -1756,7 +1756,7 @@ app.post('/api/tasks/:taskId/upload-appraisal', auth, requireRole('THAM_DINH'), 
         'UPLOAD_APPRAISAL_FILE',
         note && note.trim()
           ? note.trim()
-          : `${req.user.username} da upload ket qua tham dinh cho ho so ${task.code}`,
+          : `${req.user.username} đã upload kết quả thẩm định cho hồ sơ ${task.code}`,
         req.user.id,
       ]
     );
@@ -1769,7 +1769,7 @@ app.post('/api/tasks/:taskId/upload-appraisal', auth, requireRole('THAM_DINH'), 
         task.current_stage,
         task.current_stage,
         'HANDOFF_TO_APPRAISER',
-        `${req.user.username} ban giao ho so ${task.code} cho tham dinh vien ${appraiser.username}`,
+        `${req.user.username} bàn giao hồ sơ ${task.code} cho thẩm định viên ${appraiser.username}`,
         req.user.id,
       ]
     );
@@ -1782,7 +1782,7 @@ app.post('/api/tasks/:taskId/upload-appraisal', auth, requireRole('THAM_DINH'), 
         task.current_stage,
         task.current_stage,
         'APPRAISAL_COMPLETED',
-        `${req.user.username} da hoan thanh cong doan tham dinh cho ho so ${task.code}`,
+        `${req.user.username} Đã hoàn thành công đoạn thẩm định cho hồ sơ ${task.code}`,
         req.user.id,
       ]
     );
@@ -1791,11 +1791,11 @@ app.post('/api/tasks/:taskId/upload-appraisal', auth, requireRole('THAM_DINH'), 
       userId: appraiser.id,
       taskId,
       type: 'TASK_HANDOFF',
-      title: `Ho so ${task.code} can danh gia`,
-      message: `${req.user.username} da ban giao ho so ${task.code} cho ban danh gia ket qua tham dinh.`,
+      title: `Hồ sơ ${task.code} Cần đánh giá`,
+      message: `${req.user.username} đã bàn giao hồ sơ ${task.code} chờ bạn đánh giá kết quả thẩm định.`,
     });
 
-    return res.json({ message: 'Upload ket qua tham dinh thanh cong' });
+    return res.json({ message: 'Upload kết quả thẩm định thành công' });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

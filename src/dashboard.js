@@ -1,4 +1,4 @@
-const authToken = localStorage.getItem('authToken');
+﻿const authToken = localStorage.getItem('authToken');
 const authUser = JSON.parse(localStorage.getItem('authUser') || 'null');
 
 if (!authToken || !authUser) {
@@ -617,7 +617,7 @@ function openReviewModal(taskId) {
 async function submitReview(event) {
   event.preventDefault();
   const stateEl = document.getElementById('action-state');
-  stateEl.textContent = 'Dang xu ly...';
+  stateEl.textContent = 'Đang xử lý...';
 
   try {
     const result = document.getElementById('review-result').value;
@@ -631,7 +631,7 @@ async function submitReview(event) {
     }
 
     await apiForm(`/api/tasks/${selectedTaskId}/review`, formData);
-    stateEl.textContent = 'Danh gia thanh cong';
+    stateEl.textContent = 'Đánh giá thành công';
     await loadDashboard();
   } catch (error) {
     stateEl.textContent = error.message;
@@ -665,7 +665,7 @@ function openUploadAppraisalModal(taskId) {
 async function submitUploadAppraisal(event) {
   event.preventDefault();
   const stateEl = document.getElementById('action-state');
-  stateEl.textContent = 'Dang tai file...';
+  stateEl.textContent = 'Đang tải file...';
 
   try {
     const note = document.getElementById('appraisal-note').value.trim();
