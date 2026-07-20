@@ -499,6 +499,9 @@ document.getElementById('logout-btn').addEventListener('click', () => {
 });
 
 (async () => {
+  const heartbeat = () => api('/api/me/heartbeat', { method: 'PATCH' }).catch(() => {});
+  heartbeat();
+  window.setInterval(heartbeat, 60000);
   try {
     await loadData();
   } catch (error) {

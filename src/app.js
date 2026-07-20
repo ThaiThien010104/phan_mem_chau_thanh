@@ -198,6 +198,7 @@ async function ensureAppMigrations() {
     ['deleted_at', `ALTER TABLE tasks ADD COLUMN deleted_at TIMESTAMPTZ`],
     ['deleted_by', `ALTER TABLE tasks ADD COLUMN deleted_by INTEGER REFERENCES users(id) ON DELETE SET NULL`],
     ['delete_reason', `ALTER TABLE tasks ADD COLUMN delete_reason TEXT`],
+    ['last_seen_at', `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ`],
   ];
 
   for (const [column, sql] of migrations) {
@@ -749,6 +750,8 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ message: 'Sai thong tin dang nhap' });
     }
 
+    await run('UPDATE users SET last_seen_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
+
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role, email: user.email },
       process.env.JWT_SECRET || 'dev_secret',
@@ -761,6 +764,14 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+app.patch('/api/me/heartbeat', auth, async (req, res) => {
+  try {
+    await run('UPDATE users SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?', [req.user.id]);
+    return res.json({ message: 'ok' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
 app.get('/api/dashboard/summary', auth, async (req, res) => {
   try {
     const visibility = buildTaskVisibility(req, 't');
@@ -820,9 +831,10 @@ app.get('/api/dashboard/summary', auth, async (req, res) => {
     summary.completed = visibleTasks.filter((task) => task.current_stage === 'DONE' || task.completed_at).length;
     summary.unreadNotifications = Number((await get(
       `SELECT COUNT(*) AS count
-       FROM notifications
-       WHERE user_id = ? AND is_read = 0`,
-      [req.user.id]
+       FROM notifications n
+       JOIN tasks t ON t.id = n.task_id
+       WHERE n.user_id = ? AND n.is_read = 0 AND ${whereSql}`,
+      [req.user.id, ...visibility.params]
     )).count || 0);
 
     return res.json(summary);
@@ -1130,7 +1142,9 @@ app.get('/api/users/reviewers', auth, requireRole('ADMIN', 'TP_DUYET'), async (_
 app.get('/api/admin/users', auth, requireRole('ADMIN'), async (_, res) => {
   try {
     const users = await all(
-      `SELECT id, username, full_name, email, role, is_active, created_at, updated_at
+      `SELECT id, username, full_name, email, role, is_active, last_seen_at,
+              (last_seen_at IS NOT NULL AND last_seen_at >= NOW() - INTERVAL '5 minutes') AS is_online,
+              created_at, updated_at
        FROM users
        ORDER BY created_at DESC`
     );
@@ -2344,14 +2358,16 @@ app.get('/api/logs', auth, async (req, res) => {
 
 app.get('/api/notifications', auth, async (req, res) => {
   try {
+    const visibility = buildTaskVisibility(req, 't');
+    const where = ['n.user_id = ?', ...visibility.where];
     const rows = await all(
       `SELECT n.id, n.task_id, t.code AS task_code, n.type, n.title, n.message, n.is_read, n.created_at
        FROM notifications n
-       LEFT JOIN tasks t ON t.id = n.task_id
-       WHERE n.user_id = ?
+       JOIN tasks t ON t.id = n.task_id
+       WHERE ${where.join(' AND ')}
        ORDER BY n.created_at DESC
        LIMIT 20`,
-      [req.user.id]
+      [req.user.id, ...visibility.params]
     );
 
     return res.json(rows);

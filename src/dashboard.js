@@ -339,8 +339,9 @@ function renderTaskCard(task) {
 
 function renderUserCard(user) {
   const roleClass = user.is_active ? 'text-emerald-700' : 'text-slate-400';
-  const statusClass = user.is_active ? 'user-status--active' : 'user-status--inactive';
-  const statusLabel = user.is_active ? 'Đang hoạt động' : 'Không hoạt động';
+  const statusClass = user.is_online ? 'user-status--active' : 'user-status--inactive';
+  const statusLabel = user.is_online ? 'Đang online' : 'Không online';
+  const accountLabel = user.is_active ? 'Tài khoản hoạt động' : 'Tài khoản bị khóa';
   return `
     <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div class="flex items-start justify-between gap-3">
@@ -351,7 +352,7 @@ function renderUserCard(user) {
         <span class="user-status ${statusClass}">${statusLabel}</span>
       </div>
       <p class="mt-1 text-xs text-slate-500">${escapeHtml(user.email)}</p>
-      <p class="mt-2 text-xs font-bold ${roleClass}">${escapeHtml(user.role)}</p>
+      <p class="mt-2 text-xs font-bold ${roleClass}">${escapeHtml(user.role)} - ${accountLabel}</p>
       <div class="mt-3 flex items-center gap-2">
         <button data-action="edit-user" data-user-id="${user.id}" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100">Sửa</button>
         <button data-action="delete-user" data-user-id="${user.id}" class="rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50">Xóa</button>
@@ -958,6 +959,9 @@ function setupCreateModal() {
 
 function setupShell() {
   document.getElementById('user-info').textContent = `${authUser.username} (${authUser.role})`;
+  const heartbeat = () => api('/api/me/heartbeat', { method: 'PATCH' }).catch(() => {});
+  heartbeat();
+  window.setInterval(heartbeat, 60000);
   renderMenu();
   setActivePanel();
   fixMojibakeInDom();
