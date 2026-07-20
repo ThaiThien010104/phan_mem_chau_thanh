@@ -1,4 +1,4 @@
-(function applyDashboardRedesign() {
+﻿(function applyDashboardRedesign() {
   Object.assign(roleMenus, {
     ADMIN: [
       { key: 'overview', label: 'Tong quan' },
